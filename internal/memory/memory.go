@@ -39,6 +39,15 @@ func (memory Memory) Read(addr uint16) byte {
 	return 0x00
 }
 
+func (memory Memory) ReadOpcode(addr uint16) uint16 {
+	var opcode uint16 = 0
+
+	opcode = uint16(memory.Read(addr))
+	opcode = (opcode<<8 | uint16(memory.Read(addr+1)))
+
+	return opcode
+}
+
 func (memory *Memory) WriteArray(addr uint16, data []byte) {
 	if addr < CHIP8_MEMORY_SIZE {
 		for i := 0; i < len(data); i++ {
