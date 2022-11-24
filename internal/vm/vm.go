@@ -31,25 +31,14 @@ func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack) *VirtualMachi
 
 func (vm *VirtualMachine) EvalLoop() {
 	for {
-		opcode := vm.decodeOpcode(vm.Memory.ReadOpcode(vm.Registers.PC))
+		opcode := vm.Memory.ReadOpcode(vm.Registers.PC)
 		vm.Registers.PC += 2
 
-		switch opcode[0] {
+		switch opcode {
 		default:
-			fmt.Printf("unrecognized opcode '0x%04x' at memory[0x%04x]\n", opcode[0], vm.Registers.PC)
+			fmt.Printf("unrecognized opcode '0x%04x' at memory[0x%04x]\n", opcode, vm.Registers.PC)
 		}
 
 		time.Sleep(time.Second)
 	}
-}
-
-func (vm VirtualMachine) decodeOpcode(opcode uint16) []uint16 {
-	unpacked := make([]uint16, 4)
-
-	unpacked[0] = opcode & 0xF000
-	unpacked[1] = opcode & 0x0F00
-	unpacked[2] = opcode & 0x00F0
-	unpacked[3] = opcode & 0x000F
-
-	return unpacked
 }
