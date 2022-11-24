@@ -1,8 +1,11 @@
-all:
+build:
 	go build -o bin/miya
 
-run:
+run: build 
 	bin/miya
+
+test:
+	go test -v ./...
 
 clean:
 	go clean

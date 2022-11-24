@@ -15,41 +15,41 @@ type VirtualMachine struct {
 type Registers struct {
 	I  uint16
 	PC uint16
-	V0 uint8
-	V1 uint8
-	V2 uint8
-	V3 uint8
-	V4 uint8
-	V5 uint8
-	V6 uint8
-	V7 uint8
-	V8 uint8
-	V9 uint8
-	VA uint8
-	VB uint8
-	VC uint8
-	VD uint8
-	VF uint8
+	V  []byte
 }
 
 func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack) *VirtualMachine {
 	return &VirtualMachine{
-		Registers: Registers{},
-		Memory:    memory,
-		Stack:     stack,
+		Registers: Registers{
+			PC: 0x200,
+			V:  make([]byte, 0x10),
+		},
+		Memory: memory,
+		Stack:  stack,
 	}
 }
 
 func (vm *VirtualMachine) EvalLoop() {
 	for {
-		opcode := vm.Memory.ReadOpcode(0x200 + vm.Registers.PC)
+		opcode := vm.decodeOpcode(vm.Memory.ReadOpcode(vm.Registers.PC))
 		vm.Registers.PC += 2
 
-		switch opcode {
+		switch opcode[0] {
 		default:
-			fmt.Printf("unrecognized opcode '0x%04x' at '0x%04x'\n", opcode, vm.Registers.PC)
+			fmt.Printf("unrecognized opcode '0x%04x' at memory[0x%04x]\n", opcode[0], vm.Registers.PC)
 		}
 
 		time.Sleep(time.Second)
 	}
+}
+
+func (vm VirtualMachine) decodeOpcode(opcode uint16) []uint16 {
+	unpacked := make([]uint16, 4)
+
+	unpacked[0] = opcode & 0xF000
+	unpacked[1] = opcode & 0x0F00
+	unpacked[2] = opcode & 0x00F0
+	unpacked[3] = opcode & 0x000F
+
+	return unpacked
 }
