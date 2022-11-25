@@ -1,5 +1,7 @@
 package memory
 
+const CHIP8_STACK_SIZE = 0x10
+
 type Stack struct {
 	buffer []byte
 	sp     uint8

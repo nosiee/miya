@@ -1,7 +1,6 @@
 package memory
 
 const CHIP8_MEMORY_SIZE = 0xFFF
-const CHIP8_STACK_SIZE = 0x10
 
 type Memory struct {
 	buffer []byte
