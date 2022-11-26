@@ -21,5 +21,6 @@ func main() {
 
 	mem.WriteArray(0x200, buffer)
 	go vm.EvalLoop()
+
 	screen.Show()
 }

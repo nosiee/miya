@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"math/rand"
 	"miya/internal/memory"
 	"miya/internal/screen"
 	"time"
@@ -66,7 +67,7 @@ func (vm *VirtualMachine) EvalLoop() {
 			x := (opcode & 0x0F00) >> 8
 			nn := (opcode & 0x00FF)
 
-			if uint16(vm.registers.V[x]) != nn {
+			if vm.registers.V[x] != byte(nn) {
 				vm.registers.PC += 2
 			}
 		case 0x5000:
@@ -89,9 +90,27 @@ func (vm *VirtualMachine) EvalLoop() {
 		case 0x8000:
 			x := (opcode & 0x0F00) >> 8
 			y := (opcode & 0x00F0) >> 4
-			n := (opcode & 0x000F)
 
-			fmt.Println(x, y, n)
+			switch opcode & 0x000F {
+			case 0:
+				vm.registers.V[x] = vm.registers.V[y]
+			case 1:
+				vm.registers.V[x] |= vm.registers.V[y]
+			case 2:
+				vm.registers.V[x] &= vm.registers.V[y]
+			case 3:
+				vm.registers.V[x] ^= vm.registers.V[y]
+			case 4:
+				vm.registers.V[x] += vm.registers.V[y]
+			case 5:
+				vm.registers.V[x] -= vm.registers.V[y]
+			case 6:
+				vm.registers.V[x] >>= 1
+			case 7:
+				vm.registers.V[x] = vm.registers.V[y] - vm.registers.V[x]
+			case 0xe:
+				vm.registers.V[x] <<= 1
+			}
 		case 0x9000:
 			x := (opcode & 0x0F00) >> 8
 			y := (opcode & 0x00F0) >> 4
@@ -103,11 +122,27 @@ func (vm *VirtualMachine) EvalLoop() {
 			vm.registers.I = (opcode & 0x0FFF)
 		case 0xB000:
 			vm.registers.PC = (uint16(vm.registers.V[0]) + (opcode & 0x0FFF))
+		case 0xC000:
+			x := (opcode & 0x0F00) >> 8
+			nn := (opcode & 0x00FF)
+
+			rand.Seed(time.Now().UnixNano())
+			vm.registers.V[x] = byte((rand.Intn(0xff-0x00) + 0x00) & int(nn))
+		case 0xD000:
+			x := (opcode & 0x0F00) >> 8
+			y := (opcode & 0x00F0) >> 4
+			n := (opcode & 0x000F)
+
+			fmt.Println(x, y, n)
+		case 0xE000:
+			println("0xe000 TODO")
+		case 0xF000:
+			println("0xf000 TODO")
 		default:
 			fmt.Printf("unrecognized opcode '0x%04x' at memory[0x%04x]\n", (opcode & 0xF000), vm.registers.PC)
 		}
 
 		vm.registers.PC += 2
-		time.Sleep(time.Second)
+		time.Sleep(time.Second / 60)
 	}
 }
