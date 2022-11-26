@@ -55,20 +55,20 @@ func (screen *Screen) Clear() {
 
 func (screen *Screen) Draw(x, y byte, w, h uint16) {
 	rect := graphics.SfRectangleShape_create()
+	size := graphics.NewSfVector2f()
+	pos := graphics.NewSfVector2f()
 
-	graphics.SfRectangleShape_setSize(rect, makeVector2(float32(w*10), float32(h*10)))
+	pos.SetX(float32(x * 10))
+	pos.SetY(float32(y * 10))
+	size.SetX(float32(w * 10))
+	size.SetY(float32(h * 10))
+
+	graphics.SfRectangleShape_setSize(rect, size)
 	graphics.SfRectangleShape_setOutlineThickness(rect, 1)
-	graphics.SfRectangleShape_setOutlineColor(rect, graphics.GetSfWhite())
+	graphics.SfRectangleShape_setOutlineColor(rect, graphics.GetSfGreen())
 	graphics.SfRectangleShape_setFillColor(rect, graphics.SfColor_fromRGB(255, 255, 255))
-	graphics.SfRectangleShape_setOrigin(rect, makeVector2(float32(w), float32(h)))
-	graphics.SfRectangleShape_setPosition(rect, makeVector2(float32(x*10), float32(y*10)))
+	//graphics.SfRectangleShape_setOrigin(rect, makeVector2(float32(w), float32(h)))
+	graphics.SfRectangleShape_setPosition(rect, pos)
 
 	screen.rects = append(screen.rects, rect)
-}
-
-func makeVector2(x float32, y float32) graphics.SfVector2f {
-	v := graphics.NewSfVector2f()
-	v.SetX(x)
-	v.SetY(y)
-	return v
 }
