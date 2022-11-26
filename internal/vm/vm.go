@@ -6,6 +6,8 @@ import (
 	"miya/internal/memory"
 	"miya/internal/screen"
 	"time"
+
+	"github.com/telroshan/go-sfml/v2/window"
 )
 
 type VirtualMachine struct {
@@ -14,6 +16,7 @@ type VirtualMachine struct {
 	stack        *memory.Stack
 	screen       *screen.Screen
 	instructions map[uint16]func(uint16)
+	keys         []byte
 }
 
 type Registers struct {
@@ -32,6 +35,7 @@ func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen *scree
 		stack:        stack,
 		screen:       screen,
 		instructions: make(map[uint16]func(uint16)),
+		keys:         make([]byte, 0x10),
 	}
 }
 
@@ -53,11 +57,55 @@ func (vm *VirtualMachine) EvalLoop() {
 	vm.instructions[SKP] = vm.skp
 	vm.instructions[LDF] = vm.ldf
 
+	go vm.keypad()
+
 	for {
 		opcode := vm.memory.ReadOpcode(vm.registers.PC)
 		vm.instructions[(opcode & 0xF000)](opcode)
 
-		time.Sleep(time.Second / 4)
+		time.Sleep(time.Second / 10)
+	}
+}
+
+func (vm *VirtualMachine) keypad() {
+	for {
+		select {
+		case keycode := <-vm.screen.Keyevt:
+			switch keycode {
+			case window.SfKeyCode(window.SfKeyNum1):
+				vm.keys[0x00] = vm.keys[0x00] ^ 1
+			case window.SfKeyCode(window.SfKeyNum2):
+				vm.keys[0x01] = vm.keys[0x01] ^ 1
+			case window.SfKeyCode(window.SfKeyNum3):
+				vm.keys[0x02] = vm.keys[0x02] ^ 1
+			case window.SfKeyCode(window.SfKeyNum4):
+				vm.keys[0x03] = vm.keys[0x03] ^ 1
+			case window.SfKeyCode(window.SfKeyQ):
+				vm.keys[0x04] = vm.keys[0x04] ^ 1
+			case window.SfKeyCode(window.SfKeyW):
+				vm.keys[0x05] = vm.keys[0x05] ^ 1
+			case window.SfKeyCode(window.SfKeyE):
+				vm.keys[0x06] = vm.keys[0x06] ^ 1
+			case window.SfKeyCode(window.SfKeyR):
+				vm.keys[0x07] = vm.keys[0x07] ^ 1
+			case window.SfKeyCode(window.SfKeyA):
+				vm.keys[0x08] = vm.keys[0x08] ^ 1
+			case window.SfKeyCode(window.SfKeyS):
+				vm.keys[0x09] = vm.keys[0x09] ^ 1
+			case window.SfKeyCode(window.SfKeyD):
+				vm.keys[0xA] = vm.keys[0xA] ^ 1
+			case window.SfKeyCode(window.SfKeyF):
+				vm.keys[0xB] = vm.keys[0xB] ^ 1
+			case window.SfKeyCode(window.SfKeyZ):
+				vm.keys[0xC] = vm.keys[0xC] ^ 1
+			case window.SfKeyCode(window.SfKeyX):
+				vm.keys[0xD] = vm.keys[0xD] ^ 1
+			case window.SfKeyCode(window.SfKeyC):
+				vm.keys[0xE] = vm.keys[0xE] ^ 1
+			case window.SfKeyCode(window.SfKeyV):
+				vm.keys[0xF] = vm.keys[0xF] ^ 1
+			}
+		}
 	}
 }
 
@@ -67,6 +115,8 @@ func (vm *VirtualMachine) clc(opcode uint16) {
 	if otype == 0x0E0 {
 		vm.screen.Clear()
 		vm.registers.PC += 2
+
+		return
 	}
 
 	if otype == 0x0EE {
@@ -194,16 +244,32 @@ func (vm *VirtualMachine) rnd(opcode uint16) {
 }
 
 func (vm *VirtualMachine) drw(opcode uint16) {
-	x := (opcode & 0x0F00) >> 8
-	y := (opcode & 0x00F0) >> 4
-	n := (opcode & 0x000F)
+	x := vm.registers.V[(opcode&0x0F00)>>8]
+	y := vm.registers.V[(opcode&0x00F0)>>4]
+	h := (opcode & 0x000F)
 
-	fmt.Println(x, y, n)
+	fmt.Println(x, y, h)
 	vm.registers.PC += 2
 }
 
 func (vm *VirtualMachine) skp(opcode uint16) {
-	println("0xe000 TODO")
+	x := (opcode & 0x0F00) >> 8
+	otype := (opcode & 0x00FF)
+
+	if otype == 0x9E {
+		if vm.keys[x] == 1 {
+			vm.registers.PC += 4
+			return
+		}
+	}
+
+	if otype == 0xA1 {
+		if vm.keys[x] != 1 {
+			vm.registers.PC += 4
+			return
+		}
+	}
+
 	vm.registers.PC += 2
 }
 
