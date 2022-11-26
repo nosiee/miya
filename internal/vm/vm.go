@@ -12,6 +12,8 @@ import (
 
 type VirtualMachine struct {
 	registers    Registers
+	delayTimer   byte
+	soundTimer   byte
 	memory       *memory.Memory
 	stack        *memory.Stack
 	screen       *screen.Screen
@@ -31,6 +33,8 @@ func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen *scree
 			PC: 0x200,
 			V:  make([]byte, 0x10),
 		},
+		delayTimer:   0,
+		soundTimer:   0,
 		memory:       memory,
 		stack:        stack,
 		screen:       screen,
@@ -62,6 +66,19 @@ func (vm *VirtualMachine) EvalLoop() {
 	for {
 		opcode := vm.memory.ReadOpcode(vm.registers.PC)
 		vm.instructions[(opcode & 0xF000)](opcode)
+
+		fmt.Printf("0x%04x\n", opcode)
+
+		if vm.delayTimer > 0 {
+			vm.delayTimer--
+		}
+
+		if vm.soundTimer > 0 {
+			if vm.soundTimer == 1 {
+				println("TODO(?) sound timer")
+			}
+			vm.soundTimer--
+		}
 
 		time.Sleep(time.Second / 10)
 	}
@@ -121,6 +138,7 @@ func (vm *VirtualMachine) clc(opcode uint16) {
 
 	if otype == 0x0EE {
 		vm.registers.PC = vm.stack.Pop()
+		vm.registers.PC += 2
 	}
 }
 
@@ -274,6 +292,33 @@ func (vm *VirtualMachine) skp(opcode uint16) {
 }
 
 func (vm *VirtualMachine) ldf(opcode uint16) {
-	println("0xf000 TODO")
+	x := (opcode & 0x0F00) >> 8
+	otype := (opcode & 0x00FF)
+
+	switch otype {
+	case 0x07:
+		vm.registers.V[x] = vm.delayTimer
+	case 0x0A:
+		println("TODO 0x0a")
+	case 0x15:
+		vm.delayTimer = vm.registers.V[x]
+	case 0x18:
+		vm.soundTimer = vm.registers.V[x]
+	case 0x1E:
+		vm.registers.I += uint16(vm.registers.V[x])
+	case 0x29:
+		println("TODO 0x29")
+	case 0x33:
+		println("TODO 0x33")
+	case 0x55:
+		for i := uint16(0); i < x; i++ {
+			vm.memory.Write(vm.registers.I+i, vm.registers.V[i])
+		}
+	case 0x65:
+		for i := uint16(0); i < x; i++ {
+			vm.registers.V[i] = vm.memory.Read(vm.registers.I + i)
+		}
+	}
+
 	vm.registers.PC += 2
 }
