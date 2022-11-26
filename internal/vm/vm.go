@@ -80,7 +80,7 @@ func (vm *VirtualMachine) EvalLoop() {
 			vm.soundTimer--
 		}
 
-		time.Sleep(time.Second / 10)
+		time.Sleep(time.Second / 30)
 	}
 }
 
@@ -311,11 +311,11 @@ func (vm *VirtualMachine) ldf(opcode uint16) {
 	case 0x33:
 		println("TODO 0x33")
 	case 0x55:
-		for i := uint16(0); i < x; i++ {
+		for i := uint16(0); i <= x; i++ {
 			vm.memory.Write(vm.registers.I+i, vm.registers.V[i])
 		}
 	case 0x65:
-		for i := uint16(0); i < x; i++ {
+		for i := uint16(0); i <= x; i++ {
 			vm.registers.V[i] = vm.memory.Read(vm.registers.I + i)
 		}
 	}
