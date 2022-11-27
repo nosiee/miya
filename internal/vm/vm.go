@@ -67,8 +67,6 @@ func (vm *VirtualMachine) EvalLoop() {
 		opcode := vm.memory.ReadOpcode(vm.registers.PC)
 		vm.instructions[(opcode & 0xF000)](opcode)
 
-		fmt.Printf("0x%04x\n", opcode)
-
 		if vm.delayTimer > 0 {
 			vm.delayTimer--
 		}
@@ -217,14 +215,36 @@ func (vm *VirtualMachine) vxvy(opcode uint16) {
 	case 3:
 		vm.registers.V[x] ^= vm.registers.V[y]
 	case 4:
-		vm.registers.V[x] += vm.registers.V[y]
+		rs := vm.registers.V[x] + vm.registers.V[y]
+		if rs > 0xFF {
+			vm.registers.V[0x0F] = 1
+		} else {
+			vm.registers.V[0x0F] = 0
+		}
+
+		vm.registers.V[x] = rs
 	case 5:
-		vm.registers.V[x] -= vm.registers.V[y]
+		rd := vm.registers.V[x] - vm.registers.V[y]
+		if rd > 0 {
+			vm.registers.V[0x0F] = 1
+		} else {
+			vm.registers.V[0x0F] = 0
+		}
+
+		vm.registers.V[x] = rd
 	case 6:
+		vm.registers.V[0x0f] = (vm.registers.V[x] & 1)
 		vm.registers.V[x] >>= 1
 	case 7:
-		vm.registers.V[x] = vm.registers.V[y] - vm.registers.V[x]
+		if vm.registers.V[y] < vm.registers.V[x] {
+			vm.registers.V[0x0F] = 0
+		} else {
+			vm.registers.V[0x0F] = 1
+		}
+
+		vm.registers.V[x] = vm.registers.V[y] - vm.registers.V[y]
 	case 0xe:
+		vm.registers.V[0x0f] = (vm.registers.V[x] & 128)
 		vm.registers.V[x] <<= 1
 	}
 
@@ -307,7 +327,7 @@ func (vm *VirtualMachine) ldf(opcode uint16) {
 	case 0x1E:
 		vm.registers.I += uint16(vm.registers.V[x])
 	case 0x29:
-		println("TODO 0x29")
+		vm.registers.I = uint16(vm.registers.V[x] * 5)
 	case 0x33:
 		println("TODO 0x33")
 	case 0x55:
