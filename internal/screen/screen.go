@@ -10,6 +10,7 @@ type Screen struct {
 	context   window.SfContextSettings
 	window    graphics.Struct_SS_sfRenderWindow
 	Keyevt    chan window.SfKeyCode
+	Buffer    [64][32]byte
 }
 
 func NewScreen(width, height uint, title string) *Screen {
@@ -47,6 +48,29 @@ func (screen *Screen) Show() {
 		}
 
 		screen.Clear()
+		for i := 0; i < 32; i++ {
+			for k := 0; k < 64; k++ {
+				if screen.Buffer[k][i] == 1 {
+					rect := graphics.SfRectangleShape_create()
+
+					size := graphics.NewSfVector2f()
+					size.SetX(8)
+					size.SetY(8)
+
+					pos := graphics.NewSfVector2f()
+					pos.SetX(float32(k * 10))
+					pos.SetY(float32(i * 10))
+
+					graphics.SfRectangleShape_setSize(rect, size)
+					graphics.SfRectangleShape_setOutlineThickness(rect, 1)
+					graphics.SfRectangleShape_setOutlineColor(rect, graphics.GetSfWhite())
+					graphics.SfRectangleShape_setFillColor(rect, graphics.SfColor_fromRGB(255, 255, 255))
+					graphics.SfRectangleShape_setPosition(rect, pos)
+					graphics.SfRenderWindow_drawRectangleShape(screen.window, rect, (graphics.SfRenderStates)(graphics.SwigcptrSfRenderStates(0)))
+				}
+			}
+		}
+
 		graphics.SfRenderWindow_display(screen.window)
 	}
 }

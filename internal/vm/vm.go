@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"fmt"
 	"math/rand"
 	"miya/internal/memory"
 	"miya/internal/screen"
@@ -78,7 +77,7 @@ func (vm *VirtualMachine) EvalLoop() {
 			vm.soundTimer--
 		}
 
-		time.Sleep(time.Second / 30)
+		time.Sleep(time.Second / 60)
 	}
 }
 
@@ -286,7 +285,21 @@ func (vm *VirtualMachine) drw(opcode uint16) {
 	y := vm.registers.V[(opcode&0x00F0)>>4]
 	h := (opcode & 0x000F)
 
-	fmt.Println(x, y, h)
+	vm.registers.V[0x0F] = 0
+
+	for i := uint16(0); i < h; i++ {
+		pixel := vm.memory.Read(vm.registers.I + i)
+
+		for k := 0; k < 8; k++ {
+			if pixel&(0x80>>k) >= 1 {
+				if vm.screen.Buffer[x+byte(k)][y+byte(i)] == 1 {
+					vm.registers.V[0x0F] = 1
+				}
+				vm.screen.Buffer[x+byte(k)][y+byte(i)] ^= 1
+			}
+		}
+	}
+
 	vm.registers.PC += 2
 }
 

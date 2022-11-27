@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	buffer, err := os.ReadFile("chip8-roms/Keypad.ch8")
+	buffer, err := os.ReadFile("chip8-roms/Cave.ch8")
 	if err != nil {
 		log.Fatalf("os.ReadFile(): %v\n", err)
 	}
@@ -38,7 +38,7 @@ func main() {
 
 	mem.WriteArray(0x000, font)
 	mem.WriteArray(0x200, buffer)
-	go vm.EvalLoop()
 
-	screen.Show()
+	go screen.Show()
+	vm.EvalLoop()
 }
