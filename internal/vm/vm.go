@@ -18,6 +18,8 @@ type VirtualMachine struct {
 	screen       *screen.Screen
 	instructions map[uint16]func(uint16)
 	keys         []byte
+	keypressed   chan byte
+	waitforkey   bool
 }
 
 type Registers struct {
@@ -39,6 +41,7 @@ func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen *scree
 		screen:       screen,
 		instructions: make(map[uint16]func(uint16)),
 		keys:         make([]byte, 0x10),
+		keypressed:   make(chan byte),
 	}
 }
 
@@ -72,7 +75,7 @@ func (vm *VirtualMachine) EvalLoop() {
 
 		if vm.soundTimer > 0 {
 			if vm.soundTimer == 1 {
-				println("TODO(?) sound timer")
+				println("mmm....BEEP!")
 			}
 			vm.soundTimer--
 		}
@@ -118,6 +121,10 @@ func (vm *VirtualMachine) keypad() {
 				vm.keys[0xE] = vm.keys[0xE] ^ 1
 			case window.SfKeyCode(window.SfKeyV):
 				vm.keys[0xF] = vm.keys[0xF] ^ 1
+			}
+
+			if vm.waitforkey {
+				vm.keypressed <- byte(keycode)
 			}
 		}
 	}
@@ -232,7 +239,7 @@ func (vm *VirtualMachine) vxvy(opcode uint16) {
 
 		vm.registers.V[x] = rd
 	case 6:
-		vm.registers.V[0x0f] = (vm.registers.V[x] & 1)
+		vm.registers.V[0x0F] = (vm.registers.V[x] & 0x01)
 		vm.registers.V[x] >>= 1
 	case 7:
 		if vm.registers.V[y] < vm.registers.V[x] {
@@ -243,7 +250,7 @@ func (vm *VirtualMachine) vxvy(opcode uint16) {
 
 		vm.registers.V[x] = vm.registers.V[y] - vm.registers.V[y]
 	case 0xe:
-		vm.registers.V[0x0f] = (vm.registers.V[x] & 128)
+		vm.registers.V[0x0F] = (vm.registers.V[x] & 128)
 		vm.registers.V[x] <<= 1
 	}
 
@@ -276,7 +283,7 @@ func (vm *VirtualMachine) rnd(opcode uint16) {
 	nn := (opcode & 0x00FF)
 
 	rand.Seed(time.Now().UnixNano())
-	vm.registers.V[x] = byte((rand.Intn(0xff-0x00) + 0x00) & int(nn))
+	vm.registers.V[x] = byte(rand.Intn(0xFF)) & byte(nn)
 	vm.registers.PC += 2
 }
 
@@ -289,13 +296,13 @@ func (vm *VirtualMachine) drw(opcode uint16) {
 
 	for i := uint16(0); i < h; i++ {
 		pixel := vm.memory.Read(vm.registers.I + i)
-
 		for k := 0; k < 8; k++ {
-			if pixel&(0x80>>k) >= 1 {
-				if vm.screen.Buffer[x+byte(k)][y+byte(i)] == 1 {
+			if pixel&(0x80>>k) != 0 {
+				if vm.screen.GetPixel(x+byte(k), y+byte(i)) == 1 {
 					vm.registers.V[0x0F] = 1
 				}
-				vm.screen.Buffer[x+byte(k)][y+byte(i)] ^= 1
+
+				vm.screen.SetPixel(x+byte(k), (y + byte(i)))
 			}
 		}
 	}
@@ -332,7 +339,9 @@ func (vm *VirtualMachine) ldf(opcode uint16) {
 	case 0x07:
 		vm.registers.V[x] = vm.delayTimer
 	case 0x0A:
-		println("TODO 0x0a")
+		vm.waitforkey = true
+		vm.registers.V[x] = <-vm.keypressed
+		vm.waitforkey = false
 	case 0x15:
 		vm.delayTimer = vm.registers.V[x]
 	case 0x18:
@@ -340,9 +349,12 @@ func (vm *VirtualMachine) ldf(opcode uint16) {
 	case 0x1E:
 		vm.registers.I += uint16(vm.registers.V[x])
 	case 0x29:
-		vm.registers.I = uint16(vm.registers.V[x] * 5)
+		vm.registers.I = uint16(vm.registers.V[x] * 0x05)
 	case 0x33:
-		println("TODO 0x33")
+		n := vm.registers.V[x]
+		vm.memory.Write(vm.registers.I, n/100)
+		vm.memory.Write(vm.registers.I+1, (n/10)%10)
+		vm.memory.Write(vm.registers.I+2, (n%100)%10)
 	case 0x55:
 		for i := uint16(0); i <= x; i++ {
 			vm.memory.Write(vm.registers.I+i, vm.registers.V[i])
