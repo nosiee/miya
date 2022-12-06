@@ -47,7 +47,7 @@ func (screen *Screen) Show() {
 			}
 		}
 
-		screen.Clear()
+		graphics.SfRenderWindow_clear(screen.window, graphics.GetSfBlack())
 		for i := 0; i < 32; i++ {
 			for k := 0; k < 64; k++ {
 				rect := graphics.SfRectangleShape_create()
@@ -80,11 +80,17 @@ func (screen *Screen) Show() {
 }
 
 func (screen *Screen) SetPixel(x, y byte) {
-	screen.buffer[x][y] ^= 1
+	if x < 64 && y < 32 {
+		screen.buffer[x][y] ^= 1
+	}
 }
 
 func (screen *Screen) GetPixel(x, y byte) byte {
-	return screen.buffer[x][y]
+	if x < 64 && y < 32 {
+		return screen.buffer[x][y]
+	}
+
+	return 0x00
 }
 
 func (screen *Screen) Clear() {
@@ -93,5 +99,4 @@ func (screen *Screen) Clear() {
 			screen.buffer[k][i] = 0x00
 		}
 	}
-	graphics.SfRenderWindow_clear(screen.window, graphics.GetSfBlack())
 }

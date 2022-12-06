@@ -26,6 +26,12 @@ func (memory Memory) Read(addr uint16) byte {
 	return 0x00
 }
 
+func (memory *Memory) Reset() {
+	for i := 0; i < CHIP8_MEMORY_SIZE; i++ {
+		memory.buffer[i] = 0x00
+	}
+}
+
 func (memory Memory) ReadOpcode(addr uint16) uint16 {
 	var opcode uint16 = 0x00
 

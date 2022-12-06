@@ -14,6 +14,14 @@ func NewStack(size int) *Stack {
 	}
 }
 
+func (stack *Stack) Reset() {
+	for i := 0; i < CHIP8_STACK_SIZE; i++ {
+		stack.buffer[i] = 0x00
+	}
+
+	stack.sp = 0
+}
+
 func (stack *Stack) Push(data uint16) {
 	if stack.sp < CHIP8_STACK_SIZE {
 		stack.buffer[stack.sp] = data

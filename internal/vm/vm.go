@@ -45,6 +45,16 @@ func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen *scree
 	}
 }
 
+func (vm *VirtualMachine) Reset() {
+	vm.registers.PC = 0x200
+	vm.registers.V = make([]byte, 0x10)
+	vm.delayTimer = 0
+	vm.soundTimer = 0
+
+	vm.memory.Reset()
+	vm.stack.Reset()
+}
+
 func (vm *VirtualMachine) EvalLoop() {
 	vm.instructions[CLC] = vm.clc
 	vm.instructions[JP] = vm.jp
@@ -91,40 +101,84 @@ func (vm *VirtualMachine) keypad() {
 			switch keycode {
 			case window.SfKeyCode(window.SfKeyNum1):
 				vm.keys[0x00] = vm.keys[0x00] ^ 1
+				if vm.waitforkey {
+					vm.keypressed <- 0x01
+				}
 			case window.SfKeyCode(window.SfKeyNum2):
 				vm.keys[0x01] = vm.keys[0x01] ^ 1
+				if vm.waitforkey {
+					vm.keypressed <- 0x02
+				}
 			case window.SfKeyCode(window.SfKeyNum3):
 				vm.keys[0x02] = vm.keys[0x02] ^ 1
+				if vm.waitforkey {
+					vm.keypressed <- 0x03
+				}
 			case window.SfKeyCode(window.SfKeyNum4):
 				vm.keys[0x03] = vm.keys[0x03] ^ 1
+				if vm.waitforkey {
+					vm.keypressed <- 0x0C
+				}
 			case window.SfKeyCode(window.SfKeyQ):
 				vm.keys[0x04] = vm.keys[0x04] ^ 1
+				if vm.waitforkey {
+					vm.keypressed <- 0x4
+				}
 			case window.SfKeyCode(window.SfKeyW):
 				vm.keys[0x05] = vm.keys[0x05] ^ 1
+				if vm.waitforkey {
+					vm.keypressed <- 0x05
+				}
 			case window.SfKeyCode(window.SfKeyE):
 				vm.keys[0x06] = vm.keys[0x06] ^ 1
+				if vm.waitforkey {
+					vm.keypressed <- 0x06
+				}
 			case window.SfKeyCode(window.SfKeyR):
 				vm.keys[0x07] = vm.keys[0x07] ^ 1
+				if vm.waitforkey {
+					vm.keypressed <- 0x0D
+				}
 			case window.SfKeyCode(window.SfKeyA):
 				vm.keys[0x08] = vm.keys[0x08] ^ 1
+				if vm.waitforkey {
+					vm.keypressed <- 0x07
+				}
 			case window.SfKeyCode(window.SfKeyS):
 				vm.keys[0x09] = vm.keys[0x09] ^ 1
+				if vm.waitforkey {
+					vm.keypressed <- 0x08
+				}
 			case window.SfKeyCode(window.SfKeyD):
 				vm.keys[0xA] = vm.keys[0xA] ^ 1
+				if vm.waitforkey {
+					vm.keypressed <- 0x09
+				}
 			case window.SfKeyCode(window.SfKeyF):
 				vm.keys[0xB] = vm.keys[0xB] ^ 1
+				if vm.waitforkey {
+					vm.keypressed <- 0x0E
+				}
 			case window.SfKeyCode(window.SfKeyZ):
 				vm.keys[0xC] = vm.keys[0xC] ^ 1
+				if vm.waitforkey {
+					vm.keypressed <- 0x0A
+				}
 			case window.SfKeyCode(window.SfKeyX):
 				vm.keys[0xD] = vm.keys[0xD] ^ 1
+				if vm.waitforkey {
+					vm.keypressed <- 0x00
+				}
 			case window.SfKeyCode(window.SfKeyC):
 				vm.keys[0xE] = vm.keys[0xE] ^ 1
+				if vm.waitforkey {
+					vm.keypressed <- 0x0B
+				}
 			case window.SfKeyCode(window.SfKeyV):
 				vm.keys[0xF] = vm.keys[0xF] ^ 1
-			}
-
-			if vm.waitforkey {
-				vm.keypressed <- byte(keycode)
+				if vm.waitforkey {
+					vm.keypressed <- 0x0F
+				}
 			}
 		}
 	}
@@ -230,22 +284,21 @@ func (vm *VirtualMachine) vxvy(opcode uint16) {
 
 		vm.registers.V[x] = rs
 	case 5:
-		rd := vm.registers.V[x] - vm.registers.V[y]
-		if rd > 0 {
+		if vm.registers.V[x] < vm.registers.V[y] {
 			vm.registers.V[0x0F] = 1
 		} else {
 			vm.registers.V[0x0F] = 0
 		}
 
-		vm.registers.V[x] = rd
+		vm.registers.V[x] -= vm.registers.V[y]
 	case 6:
 		vm.registers.V[0x0F] = (vm.registers.V[x] & 0x01)
 		vm.registers.V[x] >>= 1
 	case 7:
 		if vm.registers.V[y] < vm.registers.V[x] {
-			vm.registers.V[0x0F] = 0
-		} else {
 			vm.registers.V[0x0F] = 1
+		} else {
+			vm.registers.V[0x0F] = 0
 		}
 
 		vm.registers.V[x] = vm.registers.V[y] - vm.registers.V[y]
@@ -275,7 +328,7 @@ func (vm *VirtualMachine) ldi(opcode uint16) {
 }
 
 func (vm *VirtualMachine) jpv0(opcode uint16) {
-	vm.registers.PC = (uint16(vm.registers.V[0]) + (opcode & 0x0FFF))
+	vm.registers.PC = uint16(vm.registers.V[0]) + (opcode & 0x0FFF)
 }
 
 func (vm *VirtualMachine) rnd(opcode uint16) {
@@ -322,7 +375,7 @@ func (vm *VirtualMachine) skp(opcode uint16) {
 	}
 
 	if otype == 0xA1 {
-		if vm.keys[x] != 1 {
+		if vm.keys[x] == 0 {
 			vm.registers.PC += 4
 			return
 		}
@@ -357,11 +410,13 @@ func (vm *VirtualMachine) ldf(opcode uint16) {
 		vm.memory.Write(vm.registers.I+2, (n%100)%10)
 	case 0x55:
 		for i := uint16(0); i <= x; i++ {
-			vm.memory.Write(vm.registers.I+i, vm.registers.V[i])
+			vm.memory.Write(vm.registers.I, vm.registers.V[i])
+			vm.registers.I += 1
 		}
 	case 0x65:
 		for i := uint16(0); i <= x; i++ {
-			vm.registers.V[i] = vm.memory.Read(vm.registers.I + i)
+			vm.registers.V[i] = vm.memory.Read(vm.registers.I)
+			vm.registers.I += 1
 		}
 	}
 
