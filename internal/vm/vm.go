@@ -29,7 +29,7 @@ type Registers struct {
 }
 
 func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen *screen.Screen) *VirtualMachine {
-	return &VirtualMachine{
+	vm := VirtualMachine{
 		registers: Registers{
 			PC: 0x200,
 			V:  make([]byte, 0x10),
@@ -43,19 +43,7 @@ func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen *scree
 		keys:         make([]byte, 0x10),
 		keypressed:   make(chan byte),
 	}
-}
 
-func (vm *VirtualMachine) Reset() {
-	vm.registers.PC = 0x200
-	vm.registers.V = make([]byte, 0x10)
-	vm.delayTimer = 0
-	vm.soundTimer = 0
-
-	vm.memory.Reset()
-	vm.stack.Reset()
-}
-
-func (vm *VirtualMachine) EvalLoop() {
 	vm.instructions[CLC] = vm.clc
 	vm.instructions[JP] = vm.jp
 	vm.instructions[CALL] = vm.call
@@ -73,6 +61,20 @@ func (vm *VirtualMachine) EvalLoop() {
 	vm.instructions[SKP] = vm.skp
 	vm.instructions[LDF] = vm.ldf
 
+	return &vm
+}
+
+func (vm *VirtualMachine) Reset() {
+	vm.registers.PC = 0x200
+	vm.registers.V = make([]byte, 0x10)
+	vm.delayTimer = 0
+	vm.soundTimer = 0
+
+	vm.memory.Reset()
+	vm.stack.Reset()
+}
+
+func (vm *VirtualMachine) EvalLoop() {
 	go vm.keypad()
 
 	for {
@@ -96,90 +98,64 @@ func (vm *VirtualMachine) EvalLoop() {
 
 func (vm *VirtualMachine) keypad() {
 	for {
+		key := byte(0x00)
+
 		select {
 		case keycode := <-vm.screen.Keyevt:
 			switch keycode {
 			case window.SfKeyCode(window.SfKeyNum1):
-				vm.keys[0x00] = vm.keys[0x00] ^ 1
-				if vm.waitforkey {
-					vm.keypressed <- 0x01
-				}
+				vm.keys[K01] = vm.keys[K01] ^ 1
+				key = K01
 			case window.SfKeyCode(window.SfKeyNum2):
-				vm.keys[0x01] = vm.keys[0x01] ^ 1
-				if vm.waitforkey {
-					vm.keypressed <- 0x02
-				}
+				vm.keys[K02] = vm.keys[K02] ^ 1
+				key = K02
 			case window.SfKeyCode(window.SfKeyNum3):
-				vm.keys[0x02] = vm.keys[0x02] ^ 1
-				if vm.waitforkey {
-					vm.keypressed <- 0x03
-				}
+				vm.keys[K03] = vm.keys[K03] ^ 1
+				key = K03
 			case window.SfKeyCode(window.SfKeyNum4):
-				vm.keys[0x03] = vm.keys[0x03] ^ 1
-				if vm.waitforkey {
-					vm.keypressed <- 0x0C
-				}
+				vm.keys[K0C] = vm.keys[K0C] ^ 1
+				key = K0C
 			case window.SfKeyCode(window.SfKeyQ):
-				vm.keys[0x04] = vm.keys[0x04] ^ 1
-				if vm.waitforkey {
-					vm.keypressed <- 0x4
-				}
+				vm.keys[K04] = vm.keys[K04] ^ 1
+				key = K04
 			case window.SfKeyCode(window.SfKeyW):
-				vm.keys[0x05] = vm.keys[0x05] ^ 1
-				if vm.waitforkey {
-					vm.keypressed <- 0x05
-				}
+				vm.keys[K05] = vm.keys[K05] ^ 1
+				key = K05
 			case window.SfKeyCode(window.SfKeyE):
-				vm.keys[0x06] = vm.keys[0x06] ^ 1
-				if vm.waitforkey {
-					vm.keypressed <- 0x06
-				}
+				vm.keys[K06] = vm.keys[K06] ^ 1
+				key = K06
 			case window.SfKeyCode(window.SfKeyR):
-				vm.keys[0x07] = vm.keys[0x07] ^ 1
-				if vm.waitforkey {
-					vm.keypressed <- 0x0D
-				}
+				vm.keys[K0D] = vm.keys[K0D] ^ 1
+				key = K0D
 			case window.SfKeyCode(window.SfKeyA):
-				vm.keys[0x08] = vm.keys[0x08] ^ 1
-				if vm.waitforkey {
-					vm.keypressed <- 0x07
-				}
+				vm.keys[K07] = vm.keys[K07] ^ 1
+				key = K07
 			case window.SfKeyCode(window.SfKeyS):
-				vm.keys[0x09] = vm.keys[0x09] ^ 1
-				if vm.waitforkey {
-					vm.keypressed <- 0x08
-				}
+				vm.keys[K08] = vm.keys[K08] ^ 1
+				key = K08
 			case window.SfKeyCode(window.SfKeyD):
-				vm.keys[0xA] = vm.keys[0xA] ^ 1
-				if vm.waitforkey {
-					vm.keypressed <- 0x09
-				}
+				vm.keys[K09] = vm.keys[K09] ^ 1
+				key = K09
 			case window.SfKeyCode(window.SfKeyF):
-				vm.keys[0xB] = vm.keys[0xB] ^ 1
-				if vm.waitforkey {
-					vm.keypressed <- 0x0E
-				}
+				vm.keys[K0E] = vm.keys[K0E] ^ 1
+				key = K0E
 			case window.SfKeyCode(window.SfKeyZ):
-				vm.keys[0xC] = vm.keys[0xC] ^ 1
-				if vm.waitforkey {
-					vm.keypressed <- 0x0A
-				}
+				vm.keys[K0A] = vm.keys[K0A] ^ 1
+				key = K0A
 			case window.SfKeyCode(window.SfKeyX):
-				vm.keys[0xD] = vm.keys[0xD] ^ 1
-				if vm.waitforkey {
-					vm.keypressed <- 0x00
-				}
+				vm.keys[K00] = vm.keys[K00] ^ 1
+				key = K00
 			case window.SfKeyCode(window.SfKeyC):
-				vm.keys[0xE] = vm.keys[0xE] ^ 1
-				if vm.waitforkey {
-					vm.keypressed <- 0x0B
-				}
+				vm.keys[K0B] = vm.keys[K0B] ^ 1
+				key = K0B
 			case window.SfKeyCode(window.SfKeyV):
-				vm.keys[0xF] = vm.keys[0xF] ^ 1
-				if vm.waitforkey {
-					vm.keypressed <- 0x0F
-				}
+				vm.keys[K0F] = vm.keys[K0F] ^ 1
+				key = K0F
 			}
+		}
+
+		if vm.waitforkey {
+			vm.keypressed <- key
 		}
 	}
 }

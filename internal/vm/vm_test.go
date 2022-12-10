@@ -11,65 +11,191 @@ var vm *VirtualMachine
 func init() {
 	vm = NewVirtualMachine(memory.NewMemory(memory.CHIP8_MEMORY_SIZE),
 		memory.NewStack(memory.CHIP8_STACK_SIZE),
-		screen.NewScreen(640, 320, "CHIP8"))
+		screen.NewScreen(640, 320, "CHIP8-TEST"))
 }
 
-func TestClc(t *testing.T) {
-	opcode := uint16(0x00E0)
+func TestClc_E0(t *testing.T) {
+	opcode := newOpcode(0x00E0)
 	pc := vm.registers.PC
 
-	vm.clc(opcode)
+	vm.clc(opcode.opcode)
 
 	for i := byte(0); i < 32; i++ {
 		for k := byte(0); k < 64; k++ {
 			if vm.screen.GetPixel(k, i) != 0 {
-				t.Errorf("got x: %d, y: %d, should be x: 0, y: 0\n", k, i)
+				t.Errorf("got x: %d, y: %d, want x: 0, y: 0\n", k, i)
 			}
 		}
 	}
 
-	if (pc + 2) != vm.registers.PC {
-		t.Errorf("%d want, got %d\n", pc+2, vm.registers.PC)
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
 	}
+}
 
-	opcode = 0x00EE
-	pc = vm.registers.PC
+func TestClc_EE(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x00EE)
+	pc := vm.registers.PC
+
 	vm.stack.Push(vm.registers.PC)
+	vm.registers.PC = 0x255
 
-	vm.registers.PC += 0x10
-	vm.clc(opcode)
+	vm.clc(opcode.opcode)
 
-	if (pc + 2) != vm.registers.PC {
-		t.Errorf("%x want, got %x\n", pc+2, vm.registers.PC)
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, vm.registers.PC+2)
 	}
 }
 
 func TestJp(t *testing.T) {
 	vm.Reset()
 
-	opcode := uint16(0x1222)
+	opcode := newOpcode(0x1ABC)
 
-	vm.jp(opcode)
+	vm.jp(opcode.opcode)
 
-	if vm.registers.PC != (opcode & 0x0FFF) {
-		t.Errorf("%x want, got %x\n", (opcode & 0x0FFF), vm.registers.PC)
+	if vm.registers.PC != (opcode.nnn) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, vm.registers.PC+2)
 	}
 }
 
 func TestCall(t *testing.T) {
 	vm.Reset()
 
-	opcode := uint16(0x2222)
+	opcode := newOpcode(0x2ABC)
 	pc := vm.registers.PC
 
-	vm.call(opcode)
-	sh := vm.stack.Pop()
+	vm.call(opcode.opcode)
+	head := vm.stack.Pop()
 
-	if sh != pc {
-		t.Errorf("%x want, got %x\n", pc, sh)
+	if head != pc {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", head, pc)
 	}
 
-	if vm.registers.PC != (opcode & 0x0FFF) {
-		t.Errorf("%x want, got %x\n", (opcode & 0x0FFF), vm.registers.PC)
+	if vm.registers.PC != opcode.nnn {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, opcode.nnn)
+	}
+}
+
+func TestSevx_skip(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x3ABC)
+	pc := vm.registers.PC
+
+	vm.registers.V[opcode.x] = opcode.nn
+	vm.sevx(opcode.opcode)
+
+	if vm.registers.PC != (pc + 4) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+4)
+	}
+}
+
+func TestSevx(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x3ABC)
+	pc := vm.registers.PC
+
+	vm.sevx(opcode.opcode)
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestSne_skip(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x4ABC)
+	pc := vm.registers.PC
+
+	vm.sne(opcode.opcode)
+
+	if vm.registers.PC != (pc + 4) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+4)
+	}
+}
+
+func TestSne(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x4ABC)
+	pc := vm.registers.PC
+
+	vm.registers.V[opcode.x] = opcode.nn
+	vm.sne(opcode.opcode)
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+4)
+	}
+}
+
+func TestSevxvy_skip(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x5ABC)
+	pc := vm.registers.PC
+
+	vm.registers.V[opcode.x] = 0x0A
+	vm.registers.V[opcode.y] = 0x0A
+
+	vm.sevxvy(opcode.opcode)
+
+	if vm.registers.PC != (pc + 4) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+4)
+	}
+}
+
+func TestSevxvy(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x5ABC)
+	pc := vm.registers.PC
+
+	vm.registers.V[opcode.x] = 0x0A
+	vm.registers.V[opcode.y] = 0x0B
+
+	vm.sevxvy(opcode.opcode)
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestLdvx(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x6ABC)
+	pc := vm.registers.PC
+
+	vm.ldvx(opcode.opcode)
+
+	if vm.registers.V[opcode.x] != opcode.nn {
+		t.Errorf("got V[x]: 0x%04x, want V[x]: 0x%04x\n", vm.registers.V[opcode.x], opcode.nn)
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestAdd(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x7ABC)
+	pc := vm.registers.PC
+	vx := vm.registers.V[opcode.x]
+
+	vm.add(opcode.opcode)
+
+	if vm.registers.V[opcode.x] != (vx + opcode.nn) {
+		t.Errorf("got V[x]: 0x%04x, want V[x]: 0x%04x\n", vm.registers.V[opcode.x], (vx + opcode.nn))
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
 	}
 }
