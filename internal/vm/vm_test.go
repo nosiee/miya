@@ -57,7 +57,7 @@ func TestJp(t *testing.T) {
 	vm.jp(opcode.opcode)
 
 	if vm.registers.PC != (opcode.nnn) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, vm.registers.PC+2)
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, opcode.nnn)
 	}
 }
 
@@ -71,7 +71,7 @@ func TestCall(t *testing.T) {
 	head := vm.stack.Pop()
 
 	if head != pc {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", head, pc)
+		t.Errorf("got PC from stack: 0x%04x, want PC from stack: 0x%04x\n", head, pc)
 	}
 
 	if vm.registers.PC != opcode.nnn {
@@ -138,9 +138,11 @@ func TestSevxvy_skip(t *testing.T) {
 
 	opcode := newOpcode(0x5ABC)
 	pc := vm.registers.PC
+	vx := byte(0x0A)
+	vy := byte(0x0A)
 
-	vm.registers.V[opcode.x] = 0x0A
-	vm.registers.V[opcode.y] = 0x0A
+	vm.registers.V[opcode.x] = vx
+	vm.registers.V[opcode.y] = vy
 
 	vm.sevxvy(opcode.opcode)
 
@@ -154,9 +156,11 @@ func TestSevxvy(t *testing.T) {
 
 	opcode := newOpcode(0x5ABC)
 	pc := vm.registers.PC
+	vx := byte(0x0A)
+	vy := byte(0x0B)
 
-	vm.registers.V[opcode.x] = 0x0A
-	vm.registers.V[opcode.y] = 0x0B
+	vm.registers.V[opcode.x] = vx
+	vm.registers.V[opcode.y] = vy
 
 	vm.sevxvy(opcode.opcode)
 
@@ -174,7 +178,7 @@ func TestLdvx(t *testing.T) {
 	vm.ldvx(opcode.opcode)
 
 	if vm.registers.V[opcode.x] != opcode.nn {
-		t.Errorf("got V[x]: 0x%04x, want V[x]: 0x%04x\n", vm.registers.V[opcode.x], opcode.nn)
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], opcode.nn)
 	}
 
 	if vm.registers.PC != (pc + 2) {
@@ -192,7 +196,299 @@ func TestAdd(t *testing.T) {
 	vm.add(opcode.opcode)
 
 	if vm.registers.V[opcode.x] != (vx + opcode.nn) {
-		t.Errorf("got V[x]: 0x%04x, want V[x]: 0x%04x\n", vm.registers.V[opcode.x], (vx + opcode.nn))
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], (vx + opcode.nn))
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestVxvy_0(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x8AB0)
+	pc := vm.registers.PC
+	vx := byte(0x00)
+	vy := byte(0x0A)
+
+	vm.registers.V[opcode.x] = vx
+	vm.registers.V[opcode.y] = vy
+
+	vm.vxvy(opcode.opcode)
+
+	if vm.registers.V[opcode.x] != 0x0A {
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], 0x0A)
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestVxvy_1(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x8AB1)
+	pc := vm.registers.PC
+	vx := byte(0x00)
+	vy := byte(0x0A)
+
+	vm.registers.V[opcode.x] = vx
+	vm.registers.V[opcode.y] = vy
+
+	vm.vxvy(opcode.opcode)
+
+	if vm.registers.V[opcode.x] != (vx | vy) {
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], (vx | vy))
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestVxvy_2(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x8AB2)
+	pc := vm.registers.PC
+	vx := byte(0x00)
+	vy := byte(0x0A)
+
+	vm.registers.V[opcode.x] = vx
+	vm.registers.V[opcode.y] = vy
+
+	vm.vxvy(opcode.opcode)
+
+	if vm.registers.V[opcode.x] != (vx & vy) {
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], (vx | vy))
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestVxvy_3(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x8AB3)
+	pc := vm.registers.PC
+	vx := byte(0x00)
+	vy := byte(0x0A)
+
+	vm.registers.V[opcode.x] = vx
+	vm.registers.V[opcode.y] = vy
+
+	vm.vxvy(opcode.opcode)
+
+	if vm.registers.V[opcode.x] != (vx ^ vy) {
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], (vx | vy))
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestVxvy_4_carry(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x8AB4)
+	pc := vm.registers.PC
+	vx := byte(0xFF)
+	vy := byte(0x0A)
+
+	vm.registers.V[opcode.x] = vx
+	vm.registers.V[opcode.y] = vy
+
+	vm.vxvy(opcode.opcode)
+
+	if vm.registers.V[0x0F] != 1 {
+		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x%02x\n", vm.registers.V[0x0F], 0x01)
+	}
+
+	if vm.registers.V[opcode.x] != ((0xFF + 0x0A) & 0xFF) {
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], ((0xFF + 0x0A) & 0xFF))
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestVxvy_4(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x8AB4)
+	pc := vm.registers.PC
+	vx := byte(0x0A)
+	vy := byte(0x0A)
+
+	vm.registers.V[opcode.x] = vx
+	vm.registers.V[opcode.y] = vy
+
+	vm.vxvy(opcode.opcode)
+
+	if vm.registers.V[0x0F] != 0 {
+		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x%02x\n", vm.registers.V[0x0F], 0x00)
+	}
+
+	if vm.registers.V[opcode.x] != (0x0A + 0x0A) {
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], (0x0A + 0x0A))
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestVxvy_5_carry(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x8AB5)
+	pc := vm.registers.PC
+	vx := byte(0x00)
+	vy := byte(0x10)
+
+	vm.registers.V[opcode.x] = vx
+	vm.registers.V[opcode.y] = vy
+
+	vm.vxvy(opcode.opcode)
+
+	if vm.registers.V[0x0F] != 1 {
+		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x%02x\n", vm.registers.V[0x0F], 0x00)
+	}
+
+	if vm.registers.V[opcode.x] != ((vx - vy) & 0xFF) {
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], ((vx - vy) & 0xFF))
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestVxvy_5(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x8AB5)
+	pc := vm.registers.PC
+	vx := byte(0xff)
+	vy := byte(0x10)
+
+	vm.registers.V[opcode.x] = vx
+	vm.registers.V[opcode.y] = vy
+
+	vm.vxvy(opcode.opcode)
+
+	if vm.registers.V[0x0F] != 0 {
+		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x%02x\n", vm.registers.V[0x0F], 0x00)
+	}
+
+	if vm.registers.V[opcode.x] != (vx - vy) {
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], (vx - vy))
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestVxvy_6(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x8AB6)
+	pc := vm.registers.PC
+	vx := byte(0x10)
+
+	vm.registers.V[opcode.x] = vx
+
+	vm.vxvy(opcode.opcode)
+
+	if vm.registers.V[0x0F] != (vx & 0x01) {
+		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x%02x\n", vm.registers.V[0x0F], (vx & 0x01))
+	}
+
+	if vm.registers.V[opcode.x] != (vx >> 1) {
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], (vx >> 1))
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestVxvy_7_carry(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x8AB7)
+	pc := vm.registers.PC
+	vx := byte(0xFF)
+	vy := byte(0x00)
+
+	vm.registers.V[opcode.x] = vx
+	vm.registers.V[opcode.y] = vy
+
+	vm.vxvy(opcode.opcode)
+
+	if vm.registers.V[0x0F] != 1 {
+		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x%02x\n", vm.registers.V[0x0F], 0x01)
+	}
+
+	if vm.registers.V[opcode.x] != ((vy - vx) & 0xFF) {
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], ((vy - vx) & 0xFF))
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestVxvy_7(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x8AB7)
+	pc := vm.registers.PC
+
+	vx := byte(0x00)
+	vy := byte(0xFF)
+
+	vm.registers.V[opcode.x] = vx
+	vm.registers.V[opcode.y] = vy
+
+	vm.vxvy(opcode.opcode)
+
+	if vm.registers.V[0x0F] != 0 {
+		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x%02x\n", vm.registers.V[0x0F], 0x00)
+	}
+
+	if vm.registers.V[opcode.x] != (vy - vx) {
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], (vy - vx))
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestVxvy_e(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x8ABE)
+	pc := vm.registers.PC
+	vx := byte(0x10)
+
+	vm.registers.V[opcode.x] = vx
+	vm.vxvy(opcode.opcode)
+
+	if vm.registers.V[0x0F] != (vx & 0x80) {
+		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x%02x\n", vm.registers.V[0x0F], (vx & 0x80))
+	}
+
+	if vm.registers.V[opcode.x] != (vx << 1) {
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], (vx << 1))
 	}
 
 	if vm.registers.PC != (pc + 2) {

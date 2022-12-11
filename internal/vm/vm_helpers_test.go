@@ -2,7 +2,6 @@ package vm
 
 type opcode struct {
 	opcode uint16
-	otype  byte
 	x      byte
 	y      byte
 	nn     byte
