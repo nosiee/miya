@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	buffer, err := os.ReadFile("chip8-roms/po.ch8")
+	buffer, err := os.ReadFile("chip8-roms/Keypad.ch8")
 	if err != nil {
 		log.Fatalf("os.ReadFile(): %v\n", err)
 	}

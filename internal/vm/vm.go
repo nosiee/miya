@@ -72,6 +72,7 @@ func (vm *VirtualMachine) Reset() {
 
 	vm.memory.Reset()
 	vm.stack.Reset()
+	vm.screen.Clear()
 }
 
 func (vm *VirtualMachine) EvalLoop() {
@@ -330,7 +331,7 @@ func (vm *VirtualMachine) drw(opcode uint16) {
 					vm.registers.V[0x0F] = 1
 				}
 
-				vm.screen.SetPixel(x+byte(k), (y + byte(i)))
+				vm.screen.SetPixel(x+byte(k), y+byte(i))
 			}
 		}
 	}

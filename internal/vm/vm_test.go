@@ -495,3 +495,160 @@ func TestVxvy_e(t *testing.T) {
 		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
 	}
 }
+
+func TestSnevxvy_skip(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x9AB0)
+	pc := vm.registers.PC
+	vx := byte(0x00)
+	vy := byte(0x01)
+
+	vm.registers.V[opcode.x] = vx
+	vm.registers.V[opcode.y] = vy
+
+	vm.snevxvy(opcode.opcode)
+
+	if vm.registers.PC != (pc + 4) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+4)
+	}
+}
+
+func TestSnevxvy(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0x9AB0)
+	pc := vm.registers.PC
+	vx := byte(0x10)
+	vy := byte(0x10)
+
+	vm.registers.V[opcode.x] = vx
+	vm.registers.V[opcode.y] = vy
+
+	vm.snevxvy(opcode.opcode)
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestLdi(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xABCD)
+	pc := vm.registers.PC
+
+	vm.ldi(opcode.opcode)
+
+	if vm.registers.I != opcode.nnn {
+		t.Errorf("got I: 0x%04x, want I: 0x%04x\n", vm.registers.I, opcode.nnn)
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestJpv0(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xBABC)
+	vmz := byte(0x10)
+
+	vm.registers.V[0x00] = vmz
+	vm.jpv0(opcode.opcode)
+
+	if vm.registers.PC != (uint16(vmz) + opcode.nnn) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, (uint16(vmz) + opcode.nnn))
+	}
+}
+
+func TestRnd(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xCABC)
+	pc := vm.registers.PC
+
+	vm.registers.V[opcode.x] = 0xFF // because generate number in the half-open interval [0x00, 0xFF), so it can't be 0xFF
+	vm.rnd(opcode.opcode)
+
+	if vm.registers.V[opcode.x] == 0xFF {
+		t.Errorf("got V[x]: 0x%02x, want V[x]: [0x00, 0xFF)\n", vm.registers.V[opcode.x])
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestDrw_carry(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xD125)
+	pc := vm.registers.PC
+	pixel := []byte{0xF0, 0x90, 0x90, 0x90, 0xF0} // 0
+
+	x := vm.registers.V[opcode.x] // 0x00 by default
+	y := vm.registers.V[opcode.y] // 0x00 by default
+
+	vm.memory.Write(vm.registers.I, pixel[0])
+	vm.memory.Write(vm.registers.I+1, pixel[1])
+	vm.memory.Write(vm.registers.I+2, pixel[2])
+	vm.memory.Write(vm.registers.I+3, pixel[3])
+	vm.memory.Write(vm.registers.I+4, pixel[4])
+
+	vm.screen.SetPixel(x, y)
+	vm.drw(opcode.opcode)
+	vm.screen.SetPixel(x, y) // set pixel back, because we toggled it
+
+	if vm.registers.V[0x0F] != 0x01 {
+		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x01\n", vm.registers.V[0x0F])
+	}
+
+	for i := byte(0); i < opcode.n; i++ {
+		for k := 0; k < 8; k++ {
+			if pixel[i]&(0x80>>k) != 0 {
+				if vm.screen.GetPixel(x+byte(k), y+byte(i)) != 1 {
+					t.Errorf("got screen[%d][%d] == 0, want screen[%d][%d] == 1\n", x+byte(k), y+byte(i), x+byte(k), y+byte(i))
+				}
+			}
+		}
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestDrw(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xD125)
+	pc := vm.registers.PC
+	pixel := []byte{0xF0, 0x90, 0x90, 0x90, 0xF0} // 0
+
+	x := vm.registers.V[opcode.x] // 0x00 by default
+	y := vm.registers.V[opcode.y] // 0x00 by default
+
+	vm.memory.Write(vm.registers.I, pixel[0])
+	vm.memory.Write(vm.registers.I+1, pixel[1])
+	vm.memory.Write(vm.registers.I+2, pixel[2])
+	vm.memory.Write(vm.registers.I+3, pixel[3])
+	vm.memory.Write(vm.registers.I+4, pixel[4])
+
+	vm.drw(opcode.opcode)
+
+	for i := byte(0); i < opcode.n; i++ {
+		for k := 0; k < 8; k++ {
+			if pixel[i]&(0x80>>k) != 0 {
+				if vm.screen.GetPixel(x+byte(k), y+byte(i)) != 1 {
+					t.Errorf("got screen[%d][%d] == 0, want screen[%d][%d] == 1\n", x+byte(k), y+byte(i), x+byte(k), y+byte(i))
+				}
+			}
+		}
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
