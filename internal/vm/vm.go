@@ -67,6 +67,7 @@ func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen *scree
 func (vm *VirtualMachine) Reset() {
 	vm.registers.PC = 0x200
 	vm.registers.V = make([]byte, 0x10)
+	vm.keys = make([]byte, 0x10)
 	vm.delayTimer = 0
 	vm.soundTimer = 0
 

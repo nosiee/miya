@@ -652,3 +652,248 @@ func TestDrw(t *testing.T) {
 		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
 	}
 }
+
+func TestSkp_9e_skip(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xE29E)
+	pc := vm.registers.PC
+
+	vm.keys[opcode.x] = 1
+	vm.skp(opcode.opcode)
+
+	if vm.registers.PC != (pc + 4) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+4)
+	}
+}
+
+func TestSkp_9e(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xE29E)
+	pc := vm.registers.PC
+
+	vm.skp(opcode.opcode)
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestSkp_A1_skip(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xE2A1)
+	pc := vm.registers.PC
+
+	vm.skp(opcode.opcode)
+
+	if vm.registers.PC != (pc + 4) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+4)
+	}
+}
+
+func TestSkp_A1(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xE2A1)
+	pc := vm.registers.PC
+
+	vm.keys[opcode.x] = 1
+	vm.skp(opcode.opcode)
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestLdf_07(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xF307)
+	pc := vm.registers.PC
+	dt := byte(0x80)
+
+	vm.delayTimer = dt
+	vm.ldf(opcode.opcode)
+
+	if vm.registers.V[opcode.x] != dt {
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], dt)
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestLdf_0A(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xF30A)
+	pc := vm.registers.PC
+
+	go vm.ldf(opcode.opcode)
+	vm.keypressed <- K03
+
+	if vm.registers.V[opcode.x] != K03 {
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], K03)
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestLdf_15(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xFA15)
+	pc := vm.registers.PC
+	vx := byte(0x10)
+
+	vm.registers.V[opcode.x] = vx
+	vm.ldf(opcode.opcode)
+
+	if vm.delayTimer != vx {
+		t.Errorf("got delayTimer: %d, want delayTimer: %d\n", vm.delayTimer, vx)
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestLdf_18(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xFB18)
+	pc := vm.registers.PC
+	vx := byte(0x10)
+
+	vm.registers.V[opcode.x] = vx
+	vm.ldf(opcode.opcode)
+
+	if vm.soundTimer != vx {
+		t.Errorf("got soundTimer: %d, want soundTimer: %d\n", vm.soundTimer, vx)
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestLdf_1E(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xFC1E)
+	pc := vm.registers.PC
+	vx := byte(0x22)
+	i := uint16(0x33)
+
+	vm.registers.I = i
+	vm.registers.V[opcode.x] = vx
+	vm.ldf(opcode.opcode)
+
+	if vm.registers.I != i+uint16(vx) {
+		t.Errorf("got I: 0x%04x, want I: 0x%04x\n", vm.registers.I, i+uint16(vx))
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestLdf_29(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xFC29)
+	pc := vm.registers.PC
+	vx := byte(0x22)
+
+	vm.registers.V[opcode.x] = vx
+	vm.ldf(opcode.opcode)
+
+	if vm.registers.I != uint16(vx*0x05) {
+		t.Errorf("got I: 0x%04x, want I: 0x%04x\n", vm.registers.I, (vx * 0x05))
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestLdf_33(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xFC33)
+	pc := vm.registers.PC
+	vx := byte(0xFC)
+	n := vx
+
+	vm.registers.V[opcode.x] = vx
+	vm.ldf(opcode.opcode)
+
+	if vm.memory.Read(vm.registers.I) != (n / 100) {
+		t.Errorf("got memory[I]: 0x%04x, want memory[I]: 0x%04x\n", vm.memory.Read(vm.registers.I), (n / 100))
+	}
+
+	if vm.memory.Read(vm.registers.I+1) != ((n / 10) % 10) {
+		t.Errorf("got memory[I+1]: 0x%04x, want memory[I+1]: 0x%04x\n", vm.memory.Read(vm.registers.I+1), ((n / 10) % 10))
+	}
+
+	if vm.memory.Read(vm.registers.I+2) != ((n % 100) % 10) {
+		t.Errorf("got memory[I+2]: 0x%04x, want memory[I+2]: 0x%04x\n", vm.memory.Read(vm.registers.I+2), ((n % 100) % 10))
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestLdf_55(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xFA55)
+	pc := vm.registers.PC
+
+	for i := byte(0); i <= opcode.x; i++ {
+		vm.registers.V[i] = i
+	}
+
+	vm.ldf(opcode.opcode)
+	vm.registers.I -= (uint16(opcode.x) + 1) // because I is incemented opcode.x times
+
+	for i := byte(0); i <= opcode.x; i++ {
+		if vm.memory.Read(vm.registers.I+uint16(i)) != i {
+			t.Errorf("got memory[I+%d]: 0x%04x, want memory[I+%d]: 0x%04x\n", i, vm.memory.Read(vm.registers.I+uint16(i)), i, i)
+		}
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
+
+func TestLdf_65(t *testing.T) {
+	vm.Reset()
+
+	opcode := newOpcode(0xFA65)
+	pc := vm.registers.PC
+
+	for i := byte(0); i <= opcode.x; i++ {
+		vm.memory.Write(vm.registers.I+uint16(i), i)
+	}
+
+	vm.ldf(opcode.opcode)
+	vm.registers.I -= (uint16(opcode.x) + 1) // because I is incremented opcode.x times
+
+	for i := byte(0); i <= opcode.x; i++ {
+		if vm.registers.V[i] != i {
+			t.Errorf("got V[%d]: 0x%04x, want V[%d]: 0x%04x\n", i, vm.registers.V[i], i, i)
+		}
+	}
+
+	if vm.registers.PC != (pc + 2) {
+		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.registers.PC, pc+2)
+	}
+}
