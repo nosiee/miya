@@ -80,11 +80,17 @@ func (screen *Screen) Show() {
 }
 
 func (screen *Screen) SetPixel(x, y byte) {
-	screen.buffer[x][y] ^= 1
+	if x < 64 && y < 32 {
+		screen.buffer[x][y] ^= 1
+	}
 }
 
 func (screen *Screen) GetPixel(x, y byte) byte {
-	return screen.buffer[x][y]
+	if x < 64 && y < 32 {
+		return screen.buffer[x][y]
+	}
+
+	return 0x00
 }
 
 func (screen *Screen) Clear() {

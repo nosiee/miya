@@ -261,7 +261,7 @@ func (vm *VirtualMachine) vxvy(opcode uint16) {
 
 		vm.registers.V[x] += vm.registers.V[y]
 	case 5:
-		if vm.registers.V[x] < vm.registers.V[y] {
+		if vm.registers.V[x] > vm.registers.V[y] {
 			vm.registers.V[0x0F] = 1
 		} else {
 			vm.registers.V[0x0F] = 0
@@ -272,7 +272,7 @@ func (vm *VirtualMachine) vxvy(opcode uint16) {
 		vm.registers.V[0x0F] = (vm.registers.V[x] & 0x01)
 		vm.registers.V[x] >>= 1
 	case 7:
-		if vm.registers.V[y] < vm.registers.V[x] {
+		if vm.registers.V[y] > vm.registers.V[x] {
 			vm.registers.V[0x0F] = 1
 		} else {
 			vm.registers.V[0x0F] = 0
