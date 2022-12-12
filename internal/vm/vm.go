@@ -13,6 +13,7 @@ type VirtualMachine struct {
 	registers    Registers
 	delayTimer   byte
 	soundTimer   byte
+	delay        uint64
 	memory       *memory.Memory
 	stack        *memory.Stack
 	screen       *screen.Screen
@@ -28,7 +29,24 @@ type Registers struct {
 	V  []byte
 }
 
-func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen *screen.Screen) *VirtualMachine {
+var font = []byte{0xF0, 0x90, 0x90, 0x90, 0xF0,
+	0x20, 0x60, 0x20, 0x20, 0x70,
+	0xF0, 0x10, 0xF0, 0x80, 0xF0,
+	0xF0, 0x10, 0xF0, 0x10, 0xF0,
+	0x90, 0x90, 0xF0, 0x10, 0x10,
+	0xF0, 0x80, 0xF0, 0x10, 0xF0,
+	0xF0, 0x80, 0xF0, 0x90, 0xF0,
+	0xF0, 0x10, 0x20, 0x40, 0x40,
+	0xF0, 0x90, 0xF0, 0x90, 0xF0,
+	0xF0, 0x90, 0xF0, 0x10, 0xF0,
+	0xF0, 0x90, 0xF0, 0x90, 0x90,
+	0xE0, 0x90, 0xE0, 0x90, 0xE0,
+	0xF0, 0x80, 0x80, 0x80, 0xF0,
+	0xE0, 0x90, 0x90, 0x90, 0xE0,
+	0xF0, 0x80, 0xF0, 0x80, 0xF0,
+	0xF0, 0x80, 0xF0, 0x80, 0x80}
+
+func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen *screen.Screen, delay uint64) *VirtualMachine {
 	vm := VirtualMachine{
 		registers: Registers{
 			PC: 0x200,
@@ -36,6 +54,7 @@ func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen *scree
 		},
 		delayTimer:   0,
 		soundTimer:   0,
+		delay:        delay,
 		memory:       memory,
 		stack:        stack,
 		screen:       screen,
@@ -43,6 +62,8 @@ func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen *scree
 		keys:         make([]byte, 0x10),
 		keypressed:   make(chan byte),
 	}
+
+	vm.memory.WriteArray(0x000, font)
 
 	vm.instructions[CLC] = vm.clc
 	vm.instructions[JP] = vm.jp
@@ -74,6 +95,7 @@ func (vm *VirtualMachine) Reset() {
 	vm.memory.Reset()
 	vm.stack.Reset()
 	vm.screen.Clear()
+	vm.memory.WriteArray(0x000, font)
 }
 
 func (vm *VirtualMachine) EvalLoop() {
@@ -94,7 +116,7 @@ func (vm *VirtualMachine) EvalLoop() {
 			vm.soundTimer--
 		}
 
-		time.Sleep(time.Second / 60)
+		time.Sleep(time.Millisecond * time.Duration(vm.delay))
 	}
 }
 

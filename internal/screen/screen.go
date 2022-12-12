@@ -2,6 +2,7 @@ package screen
 
 import (
 	"os"
+	"time"
 
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -9,6 +10,7 @@ import (
 type Screen struct {
 	window   *sdl.Window
 	renderer *sdl.Renderer
+	delay    uint64
 	Keyevt   chan Keyevent
 	buffer   [64][32]byte
 }
@@ -18,7 +20,7 @@ type Keyevent struct {
 	Etype   uint32
 }
 
-func NewScreen(width, height int32, title string) (*Screen, error) {
+func NewScreen(width, height int32, title string, delay uint64) (*Screen, error) {
 	var screen Screen
 	var err error
 
@@ -33,6 +35,7 @@ func NewScreen(width, height int32, title string) (*Screen, error) {
 	}
 
 	screen.Keyevt = make(chan Keyevent)
+	screen.delay = delay
 	return &screen, nil
 }
 
@@ -73,7 +76,7 @@ func (screen *Screen) Show() {
 			}
 		}
 
-		sdl.Delay(1000 / 60)
+		time.Sleep(time.Millisecond * time.Duration(screen.delay))
 	}
 }
 
