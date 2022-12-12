@@ -1,4 +1,4 @@
-github.com/telroshan/go-sfml v1.251.0 h1:E7AHTh2jGfH0a67QMgkMWu+TbJnzKXwJq79VeoPJ0ew=
-github.com/telroshan/go-sfml v1.251.0/go.mod h1:QyNBcTqtiIimdxR1m//7jBThbK9pn/e3f76NALusYco=
 github.com/telroshan/go-sfml/v2 v2.5.1 h1:EMojHZjKW1FQFMaRoVdZmsYNgVHT0eLzz9JfBTpcmq8=
 github.com/telroshan/go-sfml/v2 v2.5.1/go.mod h1:GGgIqGkblHe4Ezlxp90vkYCtzqi4NDIuwbWteb2Cjcc=
+github.com/veandco/go-sdl2 v0.4.27 h1:p6CbXe7cNxhvR/QhiajEbRpwpCtOuO5VQqqCQW3saUs=
+github.com/veandco/go-sdl2 v0.4.27/go.mod h1:OROqMhHD43nT4/i9crJukyVecjPNYYuCofep6SNiAjY=

@@ -6,7 +6,7 @@ import (
 	"miya/internal/screen"
 	"time"
 
-	"github.com/telroshan/go-sfml/v2/window"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 type VirtualMachine struct {
@@ -100,64 +100,17 @@ func (vm *VirtualMachine) EvalLoop() {
 
 func (vm *VirtualMachine) keypad() {
 	for {
-		key := byte(0x00)
+		keyevent := <-vm.screen.Keyevt
+		if _, ok := keymap[keyevent.Keycode]; ok {
+			if keyevent.Etype == sdl.KEYUP {
+				vm.keys[keymap[keyevent.Keycode]] = 0
+			} else {
+				vm.keys[keymap[keyevent.Keycode]] = 1
 
-		select {
-		case keycode := <-vm.screen.Keyevt:
-			switch keycode {
-			case window.SfKeyCode(window.SfKeyNum1):
-				vm.keys[K01] = vm.keys[K01] ^ 1
-				key = K01
-			case window.SfKeyCode(window.SfKeyNum2):
-				vm.keys[K02] = vm.keys[K02] ^ 1
-				key = K02
-			case window.SfKeyCode(window.SfKeyNum3):
-				vm.keys[K03] = vm.keys[K03] ^ 1
-				key = K03
-			case window.SfKeyCode(window.SfKeyNum4):
-				vm.keys[K0C] = vm.keys[K0C] ^ 1
-				key = K0C
-			case window.SfKeyCode(window.SfKeyQ):
-				vm.keys[K04] = vm.keys[K04] ^ 1
-				key = K04
-			case window.SfKeyCode(window.SfKeyW):
-				vm.keys[K05] = vm.keys[K05] ^ 1
-				key = K05
-			case window.SfKeyCode(window.SfKeyE):
-				vm.keys[K06] = vm.keys[K06] ^ 1
-				key = K06
-			case window.SfKeyCode(window.SfKeyR):
-				vm.keys[K0D] = vm.keys[K0D] ^ 1
-				key = K0D
-			case window.SfKeyCode(window.SfKeyA):
-				vm.keys[K07] = vm.keys[K07] ^ 1
-				key = K07
-			case window.SfKeyCode(window.SfKeyS):
-				vm.keys[K08] = vm.keys[K08] ^ 1
-				key = K08
-			case window.SfKeyCode(window.SfKeyD):
-				vm.keys[K09] = vm.keys[K09] ^ 1
-				key = K09
-			case window.SfKeyCode(window.SfKeyF):
-				vm.keys[K0E] = vm.keys[K0E] ^ 1
-				key = K0E
-			case window.SfKeyCode(window.SfKeyZ):
-				vm.keys[K0A] = vm.keys[K0A] ^ 1
-				key = K0A
-			case window.SfKeyCode(window.SfKeyX):
-				vm.keys[K00] = vm.keys[K00] ^ 1
-				key = K00
-			case window.SfKeyCode(window.SfKeyC):
-				vm.keys[K0B] = vm.keys[K0B] ^ 1
-				key = K0B
-			case window.SfKeyCode(window.SfKeyV):
-				vm.keys[K0F] = vm.keys[K0F] ^ 1
-				key = K0F
+				if vm.waitforkey {
+					vm.keypressed <- keymap[keyevent.Keycode]
+				}
 			}
-		}
-
-		if vm.waitforkey {
-			vm.keypressed <- key
 		}
 	}
 }

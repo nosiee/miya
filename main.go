@@ -31,7 +31,12 @@ func main() {
 		0xF0, 0x80, 0xF0, 0x80, 0xF0,
 		0xF0, 0x80, 0xF0, 0x80, 0x80}
 
-	screen := screen.NewScreen(640, 320, "CHIP8")
+	screen, err := screen.NewScreen(640, 320, "CHIP8")
+	if err != nil {
+		// TODO:
+		panic(err)
+	}
+
 	mem := memory.NewMemory(memory.CHIP8_MEMORY_SIZE)
 	stack := memory.NewStack(memory.CHIP8_STACK_SIZE)
 	vm := vm.NewVirtualMachine(mem, stack, screen)
