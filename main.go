@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"miya/internal/memory"
 	"miya/internal/screen"
@@ -25,8 +24,7 @@ func main() {
 
 	screen, err := screen.NewScreen(640, 320, "CHIP8", delay)
 	if err != nil {
-		fmt.Printf("screen.NewScreen(): %v\n", err)
-		os.Exit(-1)
+		log.Fatalf("screen.NewScreen(): %v\n", err)
 	}
 
 	mem := memory.NewMemory(memory.CHIP8_MEMORY_SIZE)

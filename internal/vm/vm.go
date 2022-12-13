@@ -320,14 +320,14 @@ func (vm *VirtualMachine) skp(opcode uint16) {
 	otype := (opcode & 0x00FF)
 
 	if otype == 0x9E {
-		if vm.keys[x] == 1 {
+		if vm.keys[vm.registers.V[x]] == 1 {
 			vm.registers.PC += 4
 			return
 		}
 	}
 
 	if otype == 0xA1 {
-		if vm.keys[x] == 0 {
+		if vm.keys[vm.registers.V[x]] == 0 {
 			vm.registers.PC += 4
 			return
 		}

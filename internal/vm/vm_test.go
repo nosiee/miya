@@ -4,14 +4,17 @@ import (
 	"miya/internal/memory"
 	"miya/internal/screen"
 	"testing"
+
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 var vm *VirtualMachine
 
 func init() {
-	vm = NewVirtualMachine(memory.NewMemory(memory.CHIP8_MEMORY_SIZE),
-		memory.NewStack(memory.CHIP8_STACK_SIZE),
-		screen.NewScreen(640, 320, "CHIP8-TEST"))
+	mem := memory.NewMemory(memory.CHIP8_MEMORY_SIZE)
+	stc := memory.NewStack(memory.CHIP8_STACK_SIZE)
+	scr, _ := screen.NewScreen(640, 320, "CHIP8-TEST", 10)
+	vm = NewVirtualMachine(mem, stc, scr, 10)
 }
 
 func TestClc_E0(t *testing.T) {
@@ -349,8 +352,8 @@ func TestVxvy_5_carry(t *testing.T) {
 
 	opcode := newOpcode(0x8AB5)
 	pc := vm.registers.PC
-	vx := byte(0x00)
-	vy := byte(0x10)
+	vx := byte(0x10)
+	vy := byte(0x05)
 
 	vm.registers.V[opcode.x] = vx
 	vm.registers.V[opcode.y] = vy
@@ -375,8 +378,8 @@ func TestVxvy_5(t *testing.T) {
 
 	opcode := newOpcode(0x8AB5)
 	pc := vm.registers.PC
-	vx := byte(0xff)
-	vy := byte(0x10)
+	vx := byte(0x10)
+	vy := byte(0xFF)
 
 	vm.registers.V[opcode.x] = vx
 	vm.registers.V[opcode.y] = vy
@@ -425,8 +428,8 @@ func TestVxvy_7_carry(t *testing.T) {
 
 	opcode := newOpcode(0x8AB7)
 	pc := vm.registers.PC
-	vx := byte(0xFF)
-	vy := byte(0x00)
+	vx := byte(0x00)
+	vy := byte(0xFF)
 
 	vm.registers.V[opcode.x] = vx
 	vm.registers.V[opcode.y] = vy
@@ -452,8 +455,8 @@ func TestVxvy_7(t *testing.T) {
 	opcode := newOpcode(0x8AB7)
 	pc := vm.registers.PC
 
-	vx := byte(0x00)
-	vy := byte(0xFF)
+	vx := byte(0xFF)
+	vy := byte(0x00)
 
 	vm.registers.V[opcode.x] = vx
 	vm.registers.V[opcode.y] = vy
@@ -659,7 +662,7 @@ func TestSkp_9e_skip(t *testing.T) {
 	opcode := newOpcode(0xE29E)
 	pc := vm.registers.PC
 
-	vm.keys[opcode.x] = 1
+	vm.keys[vm.registers.V[opcode.x]] = 1
 	vm.skp(opcode.opcode)
 
 	if vm.registers.PC != (pc + 4) {
@@ -699,7 +702,7 @@ func TestSkp_A1(t *testing.T) {
 	opcode := newOpcode(0xE2A1)
 	pc := vm.registers.PC
 
-	vm.keys[opcode.x] = 1
+	vm.keys[vm.registers.V[opcode.x]] = 1
 	vm.skp(opcode.opcode)
 
 	if vm.registers.PC != (pc + 2) {
@@ -733,10 +736,10 @@ func TestLdf_0A(t *testing.T) {
 	pc := vm.registers.PC
 
 	go vm.ldf(opcode.opcode)
-	vm.keypressed <- K03
+	vm.keypressed <- sdl.K_3
 
-	if vm.registers.V[opcode.x] != K03 {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], K03)
+	if vm.registers.V[opcode.x] != sdl.K_3 {
+		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.registers.V[opcode.x], sdl.K_3)
 	}
 
 	if vm.registers.PC != (pc + 2) {

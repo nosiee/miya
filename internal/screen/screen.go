@@ -43,12 +43,24 @@ func (screen *Screen) Show() {
 	defer screen.window.Destroy()
 
 	for {
+		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
+			switch evt := event.(type) {
+			case *sdl.QuitEvent:
+				os.Exit(0)
+			case *sdl.KeyboardEvent:
+				screen.Keyevt <- Keyevent{
+					Keycode: evt.Keysym.Sym,
+					Etype:   evt.Type,
+				}
+			}
+		}
+
 		screen.renderer.Clear()
 
 		for i := byte(0); i < 32; i++ {
 			for k := byte(0); k < 64; k++ {
 				if screen.GetPixel(k, i) == 1 {
-					screen.renderer.SetDrawColor(255, 255, 255, 255)
+					screen.renderer.SetDrawColor(255, 255, 255, 0)
 				} else {
 					screen.renderer.SetDrawColor(0, 0, 0, 0)
 				}
@@ -63,19 +75,6 @@ func (screen *Screen) Show() {
 		}
 
 		screen.renderer.Present()
-
-		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
-			switch evt := event.(type) {
-			case *sdl.QuitEvent:
-				os.Exit(0)
-			case *sdl.KeyboardEvent:
-				screen.Keyevt <- Keyevent{
-					Keycode: evt.Keysym.Sym,
-					Etype:   evt.Type,
-				}
-			}
-		}
-
 		time.Sleep(time.Millisecond * time.Duration(screen.delay))
 	}
 }
