@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"miya/internal/memory"
 	"miya/internal/screen"
@@ -22,7 +23,7 @@ func main() {
 		log.Fatalf("os.ReadFile(): %v\n", err)
 	}
 
-	screen, err := screen.NewScreen(640, 320, "CHIP8", delay)
+	screen, err := screen.NewScreen(640, 320, fmt.Sprintf("CHIP8 - %s", fname), delay)
 	if err != nil {
 		log.Fatalf("screen.NewScreen(): %v\n", err)
 	}

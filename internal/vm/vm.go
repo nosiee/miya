@@ -10,23 +10,33 @@ import (
 )
 
 type VirtualMachine struct {
-	registers    Registers
+	registers    registers
 	delayTimer   byte
 	soundTimer   byte
 	delay        uint64
 	memory       *memory.Memory
 	stack        *memory.Stack
 	screen       *screen.Screen
-	instructions map[uint16]func(uint16)
+	instructions map[uint16]func(opcode)
 	keys         []byte
 	keypressed   chan byte
 	waitforkey   bool
 }
 
-type Registers struct {
+type registers struct {
 	I  uint16
 	PC uint16
 	V  []byte
+}
+
+type opcode struct {
+	value uint16
+	t     uint16
+	x     byte
+	y     byte
+	n     byte
+	nn    byte
+	nnn   uint16
 }
 
 var font = []byte{0xF0, 0x90, 0x90, 0x90, 0xF0,
@@ -48,7 +58,7 @@ var font = []byte{0xF0, 0x90, 0x90, 0x90, 0xF0,
 
 func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen *screen.Screen, delay uint64) *VirtualMachine {
 	vm := VirtualMachine{
-		registers: Registers{
+		registers: registers{
 			PC: 0x200,
 			V:  make([]byte, 0x10),
 		},
@@ -58,7 +68,7 @@ func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen *scree
 		memory:       memory,
 		stack:        stack,
 		screen:       screen,
-		instructions: make(map[uint16]func(uint16)),
+		instructions: make(map[uint16]func(opcode)),
 		keys:         make([]byte, 0x10),
 		keypressed:   make(chan byte),
 	}
@@ -85,6 +95,18 @@ func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen *scree
 	return &vm
 }
 
+func newOpcode(value uint16) opcode {
+	return opcode{
+		value: value,
+		t:     value & 0xF000,
+		x:     byte((value & 0x0F00) >> 8),
+		y:     byte((value & 0x00F0) >> 4),
+		n:     byte(value & 0x000F),
+		nn:    byte(value & 0x00FF),
+		nnn:   value & 0x0FFF,
+	}
+}
+
 func (vm *VirtualMachine) Reset() {
 	vm.registers.PC = 0x200
 	vm.registers.V = make([]byte, 0x10)
@@ -102,8 +124,8 @@ func (vm *VirtualMachine) EvalLoop() {
 	go vm.keypad()
 
 	for {
-		opcode := vm.memory.ReadOpcode(vm.registers.PC)
-		vm.instructions[(opcode & 0xF000)](opcode)
+		opcode := newOpcode(vm.memory.ReadOpcode(vm.registers.PC))
+		vm.instructions[opcode.t](opcode)
 
 		if vm.delayTimer > 0 {
 			vm.delayTimer--
@@ -123,6 +145,7 @@ func (vm *VirtualMachine) EvalLoop() {
 func (vm *VirtualMachine) keypad() {
 	for {
 		keyevent := <-vm.screen.Keyevt
+
 		if _, ok := keymap[keyevent.Keycode]; ok {
 			if keyevent.Etype == sdl.KEYUP {
 				vm.keys[keymap[keyevent.Keycode]] = 0
@@ -137,36 +160,31 @@ func (vm *VirtualMachine) keypad() {
 	}
 }
 
-func (vm *VirtualMachine) clc(opcode uint16) {
-	otype := (opcode & 0x0FFF)
-
-	if otype == 0x0E0 {
+func (vm *VirtualMachine) clc(opcode opcode) {
+	if opcode.nnn == 0x0E0 {
 		vm.screen.Clear()
 		vm.registers.PC += 2
 
 		return
 	}
 
-	if otype == 0x0EE {
+	if opcode.nnn == 0x0EE {
 		vm.registers.PC = vm.stack.Pop()
 		vm.registers.PC += 2
 	}
 }
 
-func (vm *VirtualMachine) jp(opcode uint16) {
-	vm.registers.PC = (opcode & 0x0FFF)
+func (vm *VirtualMachine) jp(opcode opcode) {
+	vm.registers.PC = opcode.nnn
 }
 
-func (vm *VirtualMachine) call(opcode uint16) {
+func (vm *VirtualMachine) call(opcode opcode) {
 	vm.stack.Push(vm.registers.PC)
-	vm.registers.PC = (opcode & 0x0FFF)
+	vm.registers.PC = opcode.nnn
 }
 
-func (vm *VirtualMachine) sevx(opcode uint16) {
-	x := (opcode & 0x0F00) >> 8
-	nn := (opcode & 0x00FF)
-
-	if vm.registers.V[x] == byte(nn) {
+func (vm *VirtualMachine) sevx(opcode opcode) {
+	if vm.registers.V[opcode.x] == opcode.nn {
 		vm.registers.PC += 4
 		return
 	}
@@ -174,11 +192,8 @@ func (vm *VirtualMachine) sevx(opcode uint16) {
 	vm.registers.PC += 2
 }
 
-func (vm *VirtualMachine) sne(opcode uint16) {
-	x := (opcode & 0x0F00) >> 8
-	nn := (opcode & 0x00FF)
-
-	if vm.registers.V[x] != byte(nn) {
+func (vm *VirtualMachine) sne(opcode opcode) {
+	if vm.registers.V[opcode.x] != opcode.nn {
 		vm.registers.PC += 4
 		return
 	}
@@ -186,11 +201,8 @@ func (vm *VirtualMachine) sne(opcode uint16) {
 	vm.registers.PC += 2
 }
 
-func (vm *VirtualMachine) sevxvy(opcode uint16) {
-	x := (opcode & 0x0F00) >> 8
-	y := (opcode & 0x00F0) >> 4
-
-	if vm.registers.V[x] == vm.registers.V[y] {
+func (vm *VirtualMachine) sevxvy(opcode opcode) {
+	if vm.registers.V[opcode.x] == vm.registers.V[opcode.y] {
 		vm.registers.PC += 4
 		return
 	}
@@ -198,75 +210,63 @@ func (vm *VirtualMachine) sevxvy(opcode uint16) {
 	vm.registers.PC += 2
 }
 
-func (vm *VirtualMachine) ldvx(opcode uint16) {
-	x := (opcode & 0x0F00) >> 8
-	nn := (opcode & 0x00FF)
-
-	vm.registers.V[x] = byte(nn)
+func (vm *VirtualMachine) ldvx(opcode opcode) {
+	vm.registers.V[opcode.x] = opcode.nn
 	vm.registers.PC += 2
 }
 
-func (vm *VirtualMachine) add(opcode uint16) {
-	x := (opcode & 0x0F00) >> 8
-	nn := (opcode & 0x00FF)
-
-	vm.registers.V[x] += byte(nn)
+func (vm *VirtualMachine) add(opcode opcode) {
+	vm.registers.V[opcode.x] += opcode.nn
 	vm.registers.PC += 2
 }
 
-func (vm *VirtualMachine) vxvy(opcode uint16) {
-	x := (opcode & 0x0F00) >> 8
-	y := (opcode & 0x00F0) >> 4
-
-	switch opcode & 0x000F {
+func (vm *VirtualMachine) vxvy(opcode opcode) {
+	switch opcode.n {
 	case 0:
-		vm.registers.V[x] = vm.registers.V[y]
+		vm.registers.V[opcode.x] = vm.registers.V[opcode.y]
 	case 1:
-		vm.registers.V[x] |= vm.registers.V[y]
+		vm.registers.V[opcode.x] |= vm.registers.V[opcode.y]
 	case 2:
-		vm.registers.V[x] &= vm.registers.V[y]
+		vm.registers.V[opcode.x] &= vm.registers.V[opcode.y]
 	case 3:
-		vm.registers.V[x] ^= vm.registers.V[y]
+		vm.registers.V[opcode.x] ^= vm.registers.V[opcode.y]
 	case 4:
-		if (uint16(vm.registers.V[x]) + uint16(vm.registers.V[y])) > 0xFF {
+		if (uint16(vm.registers.V[opcode.x]) + uint16(vm.registers.V[opcode.y])) > 0xFF {
 			vm.registers.V[0x0F] = 1
 		} else {
 			vm.registers.V[0x0F] = 0
 		}
 
-		vm.registers.V[x] += vm.registers.V[y]
+		vm.registers.V[opcode.x] += vm.registers.V[opcode.y]
 	case 5:
-		if vm.registers.V[x] > vm.registers.V[y] {
+		if vm.registers.V[opcode.x] > vm.registers.V[opcode.y] {
 			vm.registers.V[0x0F] = 1
 		} else {
 			vm.registers.V[0x0F] = 0
 		}
 
-		vm.registers.V[x] -= vm.registers.V[y]
+		vm.registers.V[opcode.x] -= vm.registers.V[opcode.y]
 	case 6:
-		vm.registers.V[0x0F] = (vm.registers.V[x] & 0x01)
-		vm.registers.V[x] >>= 1
+		vm.registers.V[0x0F] = (vm.registers.V[opcode.x] & 0x01)
+		vm.registers.V[opcode.x] >>= 1
 	case 7:
-		if vm.registers.V[y] > vm.registers.V[x] {
+		if vm.registers.V[opcode.y] > vm.registers.V[opcode.x] {
 			vm.registers.V[0x0F] = 1
 		} else {
 			vm.registers.V[0x0F] = 0
 		}
 
-		vm.registers.V[x] = vm.registers.V[y] - vm.registers.V[x]
+		vm.registers.V[opcode.x] = vm.registers.V[opcode.y] - vm.registers.V[opcode.x]
 	case 0xe:
-		vm.registers.V[0x0F] = (vm.registers.V[x] & 0x80)
-		vm.registers.V[x] <<= 1
+		vm.registers.V[0x0F] = (vm.registers.V[opcode.x] & 0x80)
+		vm.registers.V[opcode.x] <<= 1
 	}
 
 	vm.registers.PC += 2
 }
 
-func (vm *VirtualMachine) snevxvy(opcode uint16) {
-	x := (opcode & 0x0F00) >> 8
-	y := (opcode & 0x00F0) >> 4
-
-	if vm.registers.V[x] != vm.registers.V[y] {
+func (vm *VirtualMachine) snevxvy(opcode opcode) {
+	if vm.registers.V[opcode.x] != vm.registers.V[opcode.y] {
 		vm.registers.PC += 4
 		return
 	}
@@ -274,32 +274,28 @@ func (vm *VirtualMachine) snevxvy(opcode uint16) {
 	vm.registers.PC += 2
 }
 
-func (vm *VirtualMachine) ldi(opcode uint16) {
-	vm.registers.I = (opcode & 0x0FFF)
+func (vm *VirtualMachine) ldi(opcode opcode) {
+	vm.registers.I = opcode.nnn
 	vm.registers.PC += 2
 }
 
-func (vm *VirtualMachine) jpv0(opcode uint16) {
-	vm.registers.PC = uint16(vm.registers.V[0]) + (opcode & 0x0FFF)
+func (vm *VirtualMachine) jpv0(opcode opcode) {
+	vm.registers.PC = uint16(vm.registers.V[0]) + opcode.nnn
 }
 
-func (vm *VirtualMachine) rnd(opcode uint16) {
-	x := (opcode & 0x0F00) >> 8
-	nn := (opcode & 0x00FF)
-
+func (vm *VirtualMachine) rnd(opcode opcode) {
 	rand.Seed(time.Now().UnixNano())
-	vm.registers.V[x] = byte(rand.Intn(0xFF)) & byte(nn)
+	vm.registers.V[opcode.x] = byte(rand.Intn(0xFF)) & opcode.nn
 	vm.registers.PC += 2
 }
 
-func (vm *VirtualMachine) drw(opcode uint16) {
-	x := vm.registers.V[(opcode&0x0F00)>>8]
-	y := vm.registers.V[(opcode&0x00F0)>>4]
-	h := (opcode & 0x000F)
+func (vm *VirtualMachine) drw(opcode opcode) {
+	x := vm.registers.V[opcode.x]
+	y := vm.registers.V[opcode.y]
 
 	vm.registers.V[0x0F] = 0
 
-	for i := uint16(0); i < h; i++ {
+	for i := uint16(0); i < uint16(opcode.n); i++ {
 		pixel := vm.memory.Read(vm.registers.I + i)
 		for k := 0; k < 8; k++ {
 			if pixel&(0x80>>k) != 0 {
@@ -315,19 +311,16 @@ func (vm *VirtualMachine) drw(opcode uint16) {
 	vm.registers.PC += 2
 }
 
-func (vm *VirtualMachine) skp(opcode uint16) {
-	x := (opcode & 0x0F00) >> 8
-	otype := (opcode & 0x00FF)
-
-	if otype == 0x9E {
-		if vm.keys[vm.registers.V[x]] == 1 {
+func (vm *VirtualMachine) skp(opcode opcode) {
+	if opcode.nn == 0x9E {
+		if vm.keys[vm.registers.V[opcode.x]] == 1 {
 			vm.registers.PC += 4
 			return
 		}
 	}
 
-	if otype == 0xA1 {
-		if vm.keys[vm.registers.V[x]] == 0 {
+	if opcode.nn == 0xA1 {
+		if vm.keys[vm.registers.V[opcode.x]] == 0 {
 			vm.registers.PC += 4
 			return
 		}
@@ -336,37 +329,34 @@ func (vm *VirtualMachine) skp(opcode uint16) {
 	vm.registers.PC += 2
 }
 
-func (vm *VirtualMachine) ldf(opcode uint16) {
-	x := (opcode & 0x0F00) >> 8
-	otype := (opcode & 0x00FF)
-
-	switch otype {
+func (vm *VirtualMachine) ldf(opcode opcode) {
+	switch opcode.nn {
 	case 0x07:
-		vm.registers.V[x] = vm.delayTimer
+		vm.registers.V[opcode.x] = vm.delayTimer
 	case 0x0A:
 		vm.waitforkey = true
-		vm.registers.V[x] = <-vm.keypressed
+		vm.registers.V[opcode.x] = <-vm.keypressed
 		vm.waitforkey = false
 	case 0x15:
-		vm.delayTimer = vm.registers.V[x]
+		vm.delayTimer = vm.registers.V[opcode.x]
 	case 0x18:
-		vm.soundTimer = vm.registers.V[x]
+		vm.soundTimer = vm.registers.V[opcode.x]
 	case 0x1E:
-		vm.registers.I += uint16(vm.registers.V[x])
+		vm.registers.I += uint16(vm.registers.V[opcode.x])
 	case 0x29:
-		vm.registers.I = uint16(vm.registers.V[x] * 0x05)
+		vm.registers.I = uint16(vm.registers.V[opcode.x] * 0x05)
 	case 0x33:
-		n := vm.registers.V[x]
+		n := vm.registers.V[opcode.x]
 		vm.memory.Write(vm.registers.I, n/100)
 		vm.memory.Write(vm.registers.I+1, (n/10)%10)
 		vm.memory.Write(vm.registers.I+2, (n%100)%10)
 	case 0x55:
-		for i := uint16(0); i <= x; i++ {
+		for i := byte(0); i <= opcode.x; i++ {
 			vm.memory.Write(vm.registers.I, vm.registers.V[i])
 			vm.registers.I += 1
 		}
 	case 0x65:
-		for i := uint16(0); i <= x; i++ {
+		for i := byte(0); i <= opcode.x; i++ {
 			vm.registers.V[i] = vm.memory.Read(vm.registers.I)
 			vm.registers.I += 1
 		}
