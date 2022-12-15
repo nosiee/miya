@@ -15,7 +15,7 @@ type testCase struct {
 func newTestCase(test *testing.T, name string) testCase {
 	mem := memory.NewMemory(memory.CHIP8_MEMORY_SIZE)
 	stc := memory.NewStack(memory.CHIP8_STACK_SIZE)
-	scr, _ := screen.NewScreen(640, 320, "CHIP8-TEST", 10)
+	scr, _ := screen.NewScreen(640, 320, "CHIP8-TEST", 10, 0x00000000, 0xFFFFFFFF)
 	vm := NewVirtualMachine(mem, stc, scr, 10)
 
 	return testCase{

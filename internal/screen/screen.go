@@ -7,12 +7,21 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
+type color struct {
+	r uint8
+	g uint8
+	b uint8
+	a uint8
+}
+
 type Screen struct {
-	window   *sdl.Window
-	renderer *sdl.Renderer
-	delay    uint64
-	Keyevt   chan Keyevent
-	buffer   [64][32]byte
+	window          *sdl.Window
+	renderer        *sdl.Renderer
+	delay           uint64
+	backgroundColor color
+	pixelColor      color
+	Keyevt          chan Keyevent
+	buffer          [64][32]byte
 }
 
 type Keyevent struct {
@@ -20,7 +29,7 @@ type Keyevent struct {
 	Etype   uint32
 }
 
-func NewScreen(width, height int32, title string, delay uint64) (*Screen, error) {
+func NewScreen(width, height int32, title string, delay uint64, backgroundColor uint64, pixelColor uint64) (*Screen, error) {
 	var screen Screen
 	var err error
 
@@ -36,6 +45,9 @@ func NewScreen(width, height int32, title string, delay uint64) (*Screen, error)
 
 	screen.Keyevt = make(chan Keyevent)
 	screen.delay = delay
+	screen.backgroundColor = color{r: uint8((backgroundColor & 0xFF000000) >> 24), g: uint8((backgroundColor & 0x00FF0000) >> 16), b: uint8((backgroundColor & 0x0000FF00) >> 8), a: uint8(backgroundColor & 0x000000F)}
+	screen.pixelColor = color{r: uint8((pixelColor & 0xFF000000) >> 24), g: uint8((pixelColor & 0x00FF0000) >> 16), b: uint8((pixelColor & 0x0000FF00) >> 8), a: uint8(pixelColor & 0x000000F)}
+
 	return &screen, nil
 }
 
@@ -60,9 +72,9 @@ func (screen *Screen) Show() {
 		for i := byte(0); i < 32; i++ {
 			for k := byte(0); k < 64; k++ {
 				if screen.GetPixel(k, i) == 1 {
-					screen.renderer.SetDrawColor(255, 255, 255, 0)
+					screen.renderer.SetDrawColor(screen.pixelColor.r, screen.pixelColor.g, screen.pixelColor.b, screen.pixelColor.a)
 				} else {
-					screen.renderer.SetDrawColor(0, 0, 0, 0)
+					screen.renderer.SetDrawColor(screen.backgroundColor.r, screen.backgroundColor.g, screen.backgroundColor.b, screen.backgroundColor.a)
 				}
 
 				screen.renderer.FillRect(&sdl.Rect{
