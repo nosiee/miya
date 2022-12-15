@@ -1,902 +1,514 @@
 package vm
 
 import (
-	"miya/internal/memory"
-	"miya/internal/screen"
 	"testing"
 
 	"github.com/veandco/go-sdl2/sdl"
 )
 
-var vm *VirtualMachine
-
-func init() {
-	mem := memory.NewMemory(memory.CHIP8_MEMORY_SIZE)
-	stc := memory.NewStack(memory.CHIP8_STACK_SIZE)
-	scr, _ := screen.NewScreen(640, 320, "CHIP8-TEST", 10)
-	vm = NewVirtualMachine(mem, stc, scr, 10)
-}
-
 func TestClc_E0(t *testing.T) {
 	opcode := NewOpcode(0x00E0)
-	pc := vm.Registers.PC
-
-	vm.clc(opcode)
+	tcase := newTestCase(t, "CLC 0x00E0")
 
 	for i := byte(0); i < 32; i++ {
 		for k := byte(0); k < 64; k++ {
-			if vm.screen.GetPixel(k, i) != 0 {
-				t.Errorf("got x: %d, y: %d, want x: 0, y: 0\n", k, i)
-			}
+			tcase.vm.screen.SetPixel(k, i)
 		}
 	}
 
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.clc(opcode)
+	tcase.assertEqualScreen([64][32]byte{})
+	tcase.assertEqualPC(0x202)
 }
 
 func TestClc_EE(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x00EE)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "CLC 0x00EE")
 
-	vm.stack.Push(vm.Registers.PC)
-	vm.Registers.PC = 0x255
+	tcase.vm.stack.Push(tcase.vm.Registers.PC)
+	tcase.vm.Registers.PC = 0x255
 
-	vm.clc(opcode)
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, vm.Registers.PC+2)
-	}
+	tcase.vm.clc(opcode)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestJp(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x1ABC)
+	tcase := newTestCase(t, "JP")
 
-	vm.jp(opcode)
-
-	if vm.Registers.PC != (opcode.nnn) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, opcode.nnn)
-	}
+	tcase.vm.jp(opcode)
+	tcase.assertEqualPC(opcode.nnn)
 }
 
 func TestCall(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x2ABC)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "CALL")
 
-	vm.call(opcode)
-	head := vm.stack.Pop()
-
-	if head != pc {
-		t.Errorf("got PC from stack: 0x%04x, want PC from stack: 0x%04x\n", head, pc)
-	}
-
-	if vm.Registers.PC != opcode.nnn {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, opcode.nnn)
-	}
+	tcase.vm.call(opcode)
+	tcase.assertEqualStackHead(0x200)
+	tcase.assertEqualPC(opcode.nnn)
 }
 
 func TestSevx_skip(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x3ABC)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "SEVX skip")
 
-	vm.Registers.V[opcode.x] = opcode.nn
-	vm.sevx(opcode)
+	tcase.vm.Registers.V[opcode.x] = opcode.nn
 
-	if vm.Registers.PC != (pc + 4) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+4)
-	}
+	tcase.vm.sevx(opcode)
+	tcase.assertEqualPC(0x204)
 }
 
 func TestSevx(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x3ABC)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "SEVX")
 
-	vm.sevx(opcode)
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.sevx(opcode)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestSne_skip(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x4ABC)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "SNE skip")
 
-	vm.sne(opcode)
-
-	if vm.Registers.PC != (pc + 4) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+4)
-	}
+	tcase.vm.sne(opcode)
+	tcase.assertEqualPC(0x204)
 }
 
 func TestSne(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x4ABC)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "SNE")
 
-	vm.Registers.V[opcode.x] = opcode.nn
-	vm.sne(opcode)
+	tcase.vm.Registers.V[opcode.x] = opcode.nn
 
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+4)
-	}
+	tcase.vm.sne(opcode)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestSevxvy_skip(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x5ABC)
-	pc := vm.Registers.PC
-	vx := byte(0x0A)
-	vy := byte(0x0A)
+	tcase := newTestCase(t, "SEVXVY skip")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.Registers.V[opcode.y] = vy
+	tcase.vm.Registers.V[opcode.x] = 0x0A
+	tcase.vm.Registers.V[opcode.y] = 0x0A
 
-	vm.sevxvy(opcode)
-
-	if vm.Registers.PC != (pc + 4) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+4)
-	}
+	tcase.vm.sevxvy(opcode)
+	tcase.assertEqualPC(0x204)
 }
 
 func TestSevxvy(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x5ABC)
-	pc := vm.Registers.PC
-	vx := byte(0x0A)
-	vy := byte(0x0B)
+	tcase := newTestCase(t, "SEVXVY")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.Registers.V[opcode.y] = vy
+	tcase.vm.Registers.V[opcode.x] = 0x00
+	tcase.vm.Registers.V[opcode.y] = 0x0A
 
-	vm.sevxvy(opcode)
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.sevxvy(opcode)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestLdvx(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x6ABC)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "LDVX")
 
-	vm.ldvx(opcode)
-
-	if vm.Registers.V[opcode.x] != opcode.nn {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.Registers.V[opcode.x], opcode.nn)
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.ldvx(opcode)
+	tcase.assertEqualVx(opcode.x, opcode.nn)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestAdd(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x7ABC)
-	pc := vm.Registers.PC
-	vx := vm.Registers.V[opcode.x]
+	tcase := newTestCase(t, "ADD")
 
-	vm.add(opcode)
-
-	if vm.Registers.V[opcode.x] != (vx + opcode.nn) {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.Registers.V[opcode.x], (vx + opcode.nn))
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.add(opcode)
+	tcase.assertEqualVx(opcode.x, opcode.nn)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestVxvy_0(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x8AB0)
-	pc := vm.Registers.PC
-	vx := byte(0x00)
-	vy := byte(0x0A)
+	tcase := newTestCase(t, "VXVY 0x00")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.Registers.V[opcode.y] = vy
+	tcase.vm.Registers.V[opcode.y] = 0x0A
 
-	vm.vxvy(opcode)
-
-	if vm.Registers.V[opcode.x] != 0x0A {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.Registers.V[opcode.x], 0x0A)
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.vxvy(opcode)
+	tcase.assertEqualVx(opcode.x, 0x0A)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestVxvy_1(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x8AB1)
-	pc := vm.Registers.PC
-	vx := byte(0x00)
-	vy := byte(0x0A)
+	tcase := newTestCase(t, "VXVY 0x01")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.Registers.V[opcode.y] = vy
+	tcase.vm.Registers.V[opcode.y] = 0x0A
 
-	vm.vxvy(opcode)
-
-	if vm.Registers.V[opcode.x] != (vx | vy) {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.Registers.V[opcode.x], (vx | vy))
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.vxvy(opcode)
+	tcase.assertEqualVx(opcode.x, (0x00 | 0x0A))
+	tcase.assertEqualPC(0x202)
 }
 
 func TestVxvy_2(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x8AB2)
-	pc := vm.Registers.PC
-	vx := byte(0x00)
-	vy := byte(0x0A)
+	tcase := newTestCase(t, "VXVY 0x02")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.Registers.V[opcode.y] = vy
+	tcase.vm.Registers.V[opcode.y] = 0x0A
 
-	vm.vxvy(opcode)
-
-	if vm.Registers.V[opcode.x] != (vx & vy) {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.Registers.V[opcode.x], (vx | vy))
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.vxvy(opcode)
+	tcase.assertEqualVx(opcode.x, (0x00 & 0x0A))
+	tcase.assertEqualPC(0x202)
 }
 
 func TestVxvy_3(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x8AB3)
-	pc := vm.Registers.PC
-	vx := byte(0x00)
-	vy := byte(0x0A)
+	tcase := newTestCase(t, "VXVY 0x03")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.Registers.V[opcode.y] = vy
+	tcase.vm.Registers.V[opcode.y] = 0x0A
 
-	vm.vxvy(opcode)
-
-	if vm.Registers.V[opcode.x] != (vx ^ vy) {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.Registers.V[opcode.x], (vx | vy))
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.vxvy(opcode)
+	tcase.assertEqualVx(opcode.x, (0x00 ^ 0x0A))
+	tcase.assertEqualPC(0x202)
 }
 
 func TestVxvy_4_carry(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x8AB4)
-	pc := vm.Registers.PC
-	vx := byte(0xFF)
-	vy := byte(0x0A)
+	tcase := newTestCase(t, "VXVY 0x04 carry flag")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.Registers.V[opcode.y] = vy
+	tcase.vm.Registers.V[opcode.x] = 0xFF
+	tcase.vm.Registers.V[opcode.y] = 0x0A
 
-	vm.vxvy(opcode)
-
-	if vm.Registers.V[0x0F] != 1 {
-		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x%02x\n", vm.Registers.V[0x0F], 0x01)
-	}
-
-	if vm.Registers.V[opcode.x] != ((0xFF + 0x0A) & 0xFF) {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.Registers.V[opcode.x], ((0xFF + 0x0A) & 0xFF))
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.vxvy(opcode)
+	tcase.assertEqualVx(0x0F, 0x01)
+	tcase.assertEqualVx(opcode.x, ((0xFF + 0x0A) & 0xFF))
+	tcase.assertEqualPC(0x202)
 }
 
 func TestVxvy_4(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x8AB4)
-	pc := vm.Registers.PC
-	vx := byte(0x0A)
-	vy := byte(0x0A)
+	tcase := newTestCase(t, "VXVY 0x04")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.Registers.V[opcode.y] = vy
+	tcase.vm.Registers.V[opcode.x] = 0x0A
+	tcase.vm.Registers.V[opcode.y] = 0x0A
 
-	vm.vxvy(opcode)
-
-	if vm.Registers.V[0x0F] != 0 {
-		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x%02x\n", vm.Registers.V[0x0F], 0x00)
-	}
-
-	if vm.Registers.V[opcode.x] != (0x0A + 0x0A) {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.Registers.V[opcode.x], (0x0A + 0x0A))
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.vxvy(opcode)
+	tcase.assertEqualVx(0x0F, 0x00)
+	tcase.assertEqualVx(opcode.x, (0x0A + 0x0A))
+	tcase.assertEqualPC(0x202)
 }
 
 func TestVxvy_5_carry(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x8AB5)
-	pc := vm.Registers.PC
-	vx := byte(0x10)
-	vy := byte(0x05)
+	tcase := newTestCase(t, "VXVY 0x05 carry flag")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.Registers.V[opcode.y] = vy
+	tcase.vm.Registers.V[opcode.x] = 0x10
+	tcase.vm.Registers.V[opcode.y] = 0x05
 
-	vm.vxvy(opcode)
-
-	if vm.Registers.V[0x0F] != 1 {
-		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x%02x\n", vm.Registers.V[0x0F], 0x00)
-	}
-
-	if vm.Registers.V[opcode.x] != ((vx - vy) & 0xFF) {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.Registers.V[opcode.x], ((vx - vy) & 0xFF))
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.vxvy(opcode)
+	tcase.assertEqualVx(0x0F, 0x01)
+	tcase.assertEqualVx(opcode.x, (0x10 - 0x05))
+	tcase.assertEqualPC(0x202)
 }
 
 func TestVxvy_5(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x8AB5)
-	pc := vm.Registers.PC
-	vx := byte(0x10)
-	vy := byte(0xFF)
+	tcase := newTestCase(t, "VXVY 0x05")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.Registers.V[opcode.y] = vy
+	tcase.vm.Registers.V[opcode.x] = 0x05
+	tcase.vm.Registers.V[opcode.y] = 0x10
 
-	vm.vxvy(opcode)
-
-	if vm.Registers.V[0x0F] != 0 {
-		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x%02x\n", vm.Registers.V[0x0F], 0x00)
-	}
-
-	if vm.Registers.V[opcode.x] != (vx - vy) {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.Registers.V[opcode.x], (vx - vy))
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.vxvy(opcode)
+	tcase.assertEqualVx(0x0F, 0x00)
+	tcase.assertEqualVx(opcode.x, ((0x05 - 0x10) & 0xFF))
+	tcase.assertEqualPC(0x202)
 }
 
 func TestVxvy_6(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x8AB6)
-	pc := vm.Registers.PC
-	vx := byte(0x10)
+	tcase := newTestCase(t, "VXVY 0x06")
 
-	vm.Registers.V[opcode.x] = vx
+	tcase.vm.Registers.V[opcode.x] = 0x10
 
-	vm.vxvy(opcode)
-
-	if vm.Registers.V[0x0F] != (vx & 0x01) {
-		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x%02x\n", vm.Registers.V[0x0F], (vx & 0x01))
-	}
-
-	if vm.Registers.V[opcode.x] != (vx >> 1) {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.Registers.V[opcode.x], (vx >> 1))
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.vxvy(opcode)
+	tcase.assertEqualVx(0x0F, 0x00)
+	tcase.assertEqualVx(opcode.x, (0x10 >> 1))
+	tcase.assertEqualPC(0x202)
 }
 
 func TestVxvy_7_carry(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x8AB7)
-	pc := vm.Registers.PC
-	vx := byte(0x00)
-	vy := byte(0xFF)
+	tcase := newTestCase(t, "VXVY 0x07 carry flag")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.Registers.V[opcode.y] = vy
+	tcase.vm.Registers.V[opcode.x] = 0x0A
+	tcase.vm.Registers.V[opcode.y] = 0xFF
 
-	vm.vxvy(opcode)
-
-	if vm.Registers.V[0x0F] != 1 {
-		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x%02x\n", vm.Registers.V[0x0F], 0x01)
-	}
-
-	if vm.Registers.V[opcode.x] != ((vy - vx) & 0xFF) {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.Registers.V[opcode.x], ((vy - vx) & 0xFF))
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.vxvy(opcode)
+	tcase.assertEqualVx(0x0F, 0x01)
+	tcase.assertEqualVx(opcode.x, (0xFF - 0x0A))
+	tcase.assertEqualPC(0x202)
 }
 
 func TestVxvy_7(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x8AB7)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "VXVY 0x07")
 
-	vx := byte(0xFF)
-	vy := byte(0x00)
+	tcase.vm.Registers.V[opcode.x] = 0xFF
+	tcase.vm.Registers.V[opcode.y] = 0x0A
 
-	vm.Registers.V[opcode.x] = vx
-	vm.Registers.V[opcode.y] = vy
-
-	vm.vxvy(opcode)
-
-	if vm.Registers.V[0x0F] != 0 {
-		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x%02x\n", vm.Registers.V[0x0F], 0x00)
-	}
-
-	if vm.Registers.V[opcode.x] != (vy - vx) {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.Registers.V[opcode.x], (vy - vx))
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.vxvy(opcode)
+	tcase.assertEqualVx(0x0F, 0x00)
+	tcase.assertEqualVx(opcode.x, ((0x0A - 0xFF) & 0xFF))
+	tcase.assertEqualPC(0x202)
 }
 
 func TestVxvy_e(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x8ABE)
-	pc := vm.Registers.PC
-	vx := byte(0x10)
+	tcase := newTestCase(t, "VXVY 0x0E")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.vxvy(opcode)
+	tcase.vm.Registers.V[opcode.x] = 0x10
 
-	if vm.Registers.V[0x0F] != (vx & 0x80) {
-		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x%02x\n", vm.Registers.V[0x0F], (vx & 0x80))
-	}
-
-	if vm.Registers.V[opcode.x] != (vx << 1) {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.Registers.V[opcode.x], (vx << 1))
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.vxvy(opcode)
+	tcase.assertEqualVx(0x0F, (0x10 & 0x80))
+	tcase.assertEqualVx(opcode.x, (0x10 << 1))
+	tcase.assertEqualPC(0x202)
 }
 
 func TestSnevxvy_skip(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x9AB0)
-	pc := vm.Registers.PC
-	vx := byte(0x00)
-	vy := byte(0x01)
+	tcase := newTestCase(t, "SNEVXVY skip")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.Registers.V[opcode.y] = vy
+	tcase.vm.Registers.V[opcode.x] = 0x00
+	tcase.vm.Registers.V[opcode.y] = 0x10
 
-	vm.snevxvy(opcode)
-
-	if vm.Registers.PC != (pc + 4) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+4)
-	}
+	tcase.vm.snevxvy(opcode)
+	tcase.assertEqualPC(0x204)
 }
 
 func TestSnevxvy(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0x9AB0)
-	pc := vm.Registers.PC
-	vx := byte(0x10)
-	vy := byte(0x10)
+	tcase := newTestCase(t, "SNEVXVY")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.Registers.V[opcode.y] = vy
+	tcase.vm.Registers.V[opcode.x] = 0x10
+	tcase.vm.Registers.V[opcode.y] = 0x10
 
-	vm.snevxvy(opcode)
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.snevxvy(opcode)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestLdi(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xABCD)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "LDI")
 
-	vm.ldi(opcode)
-
-	if vm.Registers.I != opcode.nnn {
-		t.Errorf("got I: 0x%04x, want I: 0x%04x\n", vm.Registers.I, opcode.nnn)
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.ldi(opcode)
+	tcase.assertEqualI(opcode.nnn)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestJpv0(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xBABC)
-	vmz := byte(0x10)
+	tcase := newTestCase(t, "JPV0")
 
-	vm.Registers.V[0x00] = vmz
-	vm.jpv0(opcode)
+	tcase.vm.Registers.V[0x00] = 0x10
 
-	if vm.Registers.PC != (uint16(vmz) + opcode.nnn) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, (uint16(vmz) + opcode.nnn))
-	}
+	tcase.vm.jpv0(opcode)
+	tcase.assertEqualPC(0x10 + opcode.nnn)
 }
 
 func TestRnd(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xCABC)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "RND")
 
-	vm.Registers.V[opcode.x] = 0xFF // because generate number in the half-open interval [0x00, 0xFF), so it can't be 0xFF
-	vm.rnd(opcode)
+	tcase.vm.Registers.V[opcode.x] = 0xFF // because generate number in the half-open interval [0x00, 0xFF), so it can't be 0xFF
 
-	if vm.Registers.V[opcode.x] == 0xFF {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: [0x00, 0xFF)\n", vm.Registers.V[opcode.x])
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.rnd(opcode)
+	tcase.assertNotEqualVx(opcode.x, 0xFF)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestDrw_carry(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xD125)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "DRW carry flag")
+
 	pixel := []byte{0xF0, 0x90, 0x90, 0x90, 0xF0} // 0
-
-	x := vm.Registers.V[opcode.x] // 0x00 by default
-	y := vm.Registers.V[opcode.y] // 0x00 by default
-
-	vm.memory.Write(vm.Registers.I, pixel[0])
-	vm.memory.Write(vm.Registers.I+1, pixel[1])
-	vm.memory.Write(vm.Registers.I+2, pixel[2])
-	vm.memory.Write(vm.Registers.I+3, pixel[3])
-	vm.memory.Write(vm.Registers.I+4, pixel[4])
-
-	vm.screen.SetPixel(x, y)
-	vm.drw(opcode)
-	vm.screen.SetPixel(x, y) // set pixel back, because we toggled it
-
-	if vm.Registers.V[0x0F] != 0x01 {
-		t.Errorf("got V[0x0F]: 0x%02x, want V[0x0F]: 0x01\n", vm.Registers.V[0x0F])
+	sbuffer := [64][32]byte{
+		{1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		{1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		{1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		{1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 	}
 
-	for i := byte(0); i < opcode.n; i++ {
-		for k := 0; k < 8; k++ {
-			if pixel[i]&(0x80>>k) != 0 {
-				if vm.screen.GetPixel(x+byte(k), y+byte(i)) != 1 {
-					t.Errorf("got screen[%d][%d] == 0, want screen[%d][%d] == 1\n", x+byte(k), y+byte(i), x+byte(k), y+byte(i))
-				}
-			}
-		}
-	}
+	tcase.vm.memory.WriteArray(tcase.vm.Registers.I, pixel)
+	tcase.vm.screen.SetPixel(0x00, 0x00) // set pixel to trigger carry flag
 
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.drw(opcode)
+	tcase.vm.screen.SetPixel(0x00, 0x00) // set pixel back, because we toggled it
+	tcase.assertEqualScreen(sbuffer)
+	tcase.assertEqualVx(0x0F, 0x01)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestDrw(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xD125)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "DRW")
+
 	pixel := []byte{0xF0, 0x90, 0x90, 0x90, 0xF0} // 0
-
-	x := vm.Registers.V[opcode.x] // 0x00 by default
-	y := vm.Registers.V[opcode.y] // 0x00 by default
-
-	vm.memory.Write(vm.Registers.I, pixel[0])
-	vm.memory.Write(vm.Registers.I+1, pixel[1])
-	vm.memory.Write(vm.Registers.I+2, pixel[2])
-	vm.memory.Write(vm.Registers.I+3, pixel[3])
-	vm.memory.Write(vm.Registers.I+4, pixel[4])
-
-	vm.drw(opcode)
-
-	for i := byte(0); i < opcode.n; i++ {
-		for k := 0; k < 8; k++ {
-			if pixel[i]&(0x80>>k) != 0 {
-				if vm.screen.GetPixel(x+byte(k), y+byte(i)) != 1 {
-					t.Errorf("got screen[%d][%d] == 0, want screen[%d][%d] == 1\n", x+byte(k), y+byte(i), x+byte(k), y+byte(i))
-				}
-			}
-		}
+	sbuffer := [64][32]byte{
+		{1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		{1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		{1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		{1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 	}
 
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.memory.WriteArray(tcase.vm.Registers.I, pixel)
+
+	tcase.vm.drw(opcode)
+	tcase.assertEqualScreen(sbuffer)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestSkp_9e_skip(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xE29E)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "SKP 0x09 skip")
 
-	vm.Keys[vm.Registers.V[opcode.x]] = 1
-	vm.skp(opcode)
-
-	if vm.Registers.PC != (pc + 4) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+4)
-	}
+	tcase.vm.Keys[0x00] = 0x01
+	tcase.vm.skp(opcode)
+	tcase.assertEqualPC(0x204)
 }
 
 func TestSkp_9e(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xE29E)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "SKP 0x09")
 
-	vm.skp(opcode)
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.skp(opcode)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestSkp_A1_skip(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xE2A1)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "SKP 0x01 skip")
 
-	vm.skp(opcode)
-
-	if vm.Registers.PC != (pc + 4) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+4)
-	}
+	tcase.vm.skp(opcode)
+	tcase.assertEqualPC(0x204)
 }
 
 func TestSkp_A1(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xE2A1)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "SKP 0x01 skip")
 
-	vm.Keys[vm.Registers.V[opcode.x]] = 1
-	vm.skp(opcode)
+	tcase.vm.Keys[0x00] = 0x01
 
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.skp(opcode)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestLdf_07(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xF307)
-	pc := vm.Registers.PC
-	dt := byte(0x80)
+	tcase := newTestCase(t, "LDF 0x07")
 
-	vm.DelayTimer = dt
-	vm.ldf(opcode)
+	tcase.vm.DelayTimer = 0x20
 
-	if vm.Registers.V[opcode.x] != dt {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.Registers.V[opcode.x], dt)
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.ldf(opcode)
+	tcase.assertEqualVx(opcode.x, 0x20)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestLdf_0A(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xF30A)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "LDF 0x0A")
 
-	go vm.ldf(opcode)
-	vm.keypressed <- sdl.K_3
+	go tcase.vm.ldf(opcode)
+	tcase.vm.keypressed <- sdl.K_3
 
-	if vm.Registers.V[opcode.x] != sdl.K_3 {
-		t.Errorf("got V[x]: 0x%02x, want V[x]: 0x%02x\n", vm.Registers.V[opcode.x], sdl.K_3)
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.assertEqualVx(opcode.x, sdl.K_3)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestLdf_15(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xFA15)
-	pc := vm.Registers.PC
-	vx := byte(0x10)
+	tcase := newTestCase(t, "LDF 0x15")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.ldf(opcode)
+	tcase.vm.Registers.V[opcode.x] = 0x10
 
-	if vm.DelayTimer != vx {
-		t.Errorf("got delayTimer: %d, want delayTimer: %d\n", vm.DelayTimer, vx)
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.ldf(opcode)
+	tcase.assertEqualDelayTimer(0x10)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestLdf_18(t *testing.T) {
-	vm.Reset()
+	opcode := NewOpcode(0xFA18)
+	tcase := newTestCase(t, "LDF 0x18")
 
-	opcode := NewOpcode(0xFB18)
-	pc := vm.Registers.PC
-	vx := byte(0x10)
+	tcase.vm.Registers.V[opcode.x] = 0x10
 
-	vm.Registers.V[opcode.x] = vx
-	vm.ldf(opcode)
-
-	if vm.SoundTimer != vx {
-		t.Errorf("got soundTimer: %d, want soundTimer: %d\n", vm.SoundTimer, vx)
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.ldf(opcode)
+	tcase.assertEqualSoundTimer(0x10)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestLdf_1E(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xFC1E)
-	pc := vm.Registers.PC
-	vx := byte(0x22)
-	i := uint16(0x33)
+	tcase := newTestCase(t, "LDF 0x1E")
 
-	vm.Registers.I = i
-	vm.Registers.V[opcode.x] = vx
-	vm.ldf(opcode)
+	tcase.vm.Registers.I = 0x10
+	tcase.vm.Registers.V[opcode.x] = 0x20
 
-	if vm.Registers.I != i+uint16(vx) {
-		t.Errorf("got I: 0x%04x, want I: 0x%04x\n", vm.Registers.I, i+uint16(vx))
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.ldf(opcode)
+	tcase.assertEqualI(0x30)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestLdf_29(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xFC29)
-	pc := vm.Registers.PC
-	vx := byte(0x22)
+	tcase := newTestCase(t, "LDF 0x29")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.ldf(opcode)
+	tcase.vm.Registers.V[opcode.x] = 0x05
 
-	if vm.Registers.I != uint16(vx*0x05) {
-		t.Errorf("got I: 0x%04x, want I: 0x%04x\n", vm.Registers.I, (vx * 0x05))
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.ldf(opcode)
+	tcase.assertEqualI(0x19)
+	tcase.assertEqualPC(0x202)
 }
 
 func TestLdf_33(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xFC33)
-	pc := vm.Registers.PC
-	vx := byte(0xFC)
-	n := vx
+	tcase := newTestCase(t, "LDF 0x33")
 
-	vm.Registers.V[opcode.x] = vx
-	vm.ldf(opcode)
+	tcase.vm.Registers.V[opcode.x] = 0xFC
 
-	if vm.memory.Read(vm.Registers.I) != (n / 100) {
-		t.Errorf("got memory[I]: 0x%04x, want memory[I]: 0x%04x\n", vm.memory.Read(vm.Registers.I), (n / 100))
-	}
-
-	if vm.memory.Read(vm.Registers.I+1) != ((n / 10) % 10) {
-		t.Errorf("got memory[I+1]: 0x%04x, want memory[I+1]: 0x%04x\n", vm.memory.Read(vm.Registers.I+1), ((n / 10) % 10))
-	}
-
-	if vm.memory.Read(vm.Registers.I+2) != ((n % 100) % 10) {
-		t.Errorf("got memory[I+2]: 0x%04x, want memory[I+2]: 0x%04x\n", vm.memory.Read(vm.Registers.I+2), ((n % 100) % 10))
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.vm.ldf(opcode)
+	tcase.assertEqualMemory(tcase.vm.Registers.I, (0xFC / 100))
+	tcase.assertEqualMemory(tcase.vm.Registers.I+1, ((0xFC / 10) % 10))
+	tcase.assertEqualMemory(tcase.vm.Registers.I+2, ((0xFC % 100) % 10))
+	tcase.assertEqualPC(0x202)
 }
 
 func TestLdf_55(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xFA55)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "LDF 0x55")
 
 	for i := byte(0); i <= opcode.x; i++ {
-		vm.Registers.V[i] = i
+		tcase.vm.Registers.V[i] = i
 	}
 
-	vm.ldf(opcode)
-	vm.Registers.I -= (uint16(opcode.x) + 1) // because I is incemented opcode.x times
+	tcase.vm.ldf(opcode)
+	tcase.vm.Registers.I -= (uint16(opcode.x) + 1) // because I is incemented opcode.x times
 
 	for i := byte(0); i <= opcode.x; i++ {
-		if vm.memory.Read(vm.Registers.I+uint16(i)) != i {
-			t.Errorf("got memory[I+%d]: 0x%04x, want memory[I+%d]: 0x%04x\n", i, vm.memory.Read(vm.Registers.I+uint16(i)), i, i)
-		}
+		tcase.assertEqualMemory(tcase.vm.Registers.I+uint16(i), i)
 	}
 
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.assertEqualPC(0x202)
 }
 
 func TestLdf_65(t *testing.T) {
-	vm.Reset()
-
 	opcode := NewOpcode(0xFA65)
-	pc := vm.Registers.PC
+	tcase := newTestCase(t, "LDF 0x65")
+
+	tcase.vm.memory.WriteArray(tcase.vm.Registers.I, []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
+
+	tcase.vm.ldf(opcode)
+	tcase.vm.Registers.I -= (uint16(opcode.x) + 1) // because I is incremented opcode.x times
 
 	for i := byte(0); i <= opcode.x; i++ {
-		vm.memory.Write(vm.Registers.I+uint16(i), i)
+		tcase.assertEqualVx(i, i)
 	}
 
-	vm.ldf(opcode)
-	vm.Registers.I -= (uint16(opcode.x) + 1) // because I is incremented opcode.x times
-
-	for i := byte(0); i <= opcode.x; i++ {
-		if vm.Registers.V[i] != i {
-			t.Errorf("got V[%d]: 0x%04x, want V[%d]: 0x%04x\n", i, vm.Registers.V[i], i, i)
-		}
-	}
-
-	if vm.Registers.PC != (pc + 2) {
-		t.Errorf("got PC: 0x%04x, want PC: 0x%04x\n", vm.Registers.PC, pc+2)
-	}
+	tcase.assertEqualPC(0x202)
 }
