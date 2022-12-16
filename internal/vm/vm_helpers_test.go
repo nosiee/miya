@@ -69,6 +69,12 @@ func (tcase testCase) assertEqualI(value uint16) {
 	}
 }
 
+func (tcase testCase) assertEqualKeys(x byte, value byte) {
+	if vm.Keys[x] != value {
+		tcase.test.Errorf("[%s] got Keys[0x%02x] = 0x%02x, want Keys[0x%02x] = 0x%02x\n", tcase.name, x, vm.Keys[x], x, value)
+	}
+}
+
 func (tcase testCase) assertEqualDelayTimer(value byte) {
 	if vm.DelayTimer != value {
 		tcase.test.Errorf("[%s] got DelayTimer: %d, want DelayTimer: %d\n", tcase.name, vm.DelayTimer, value)

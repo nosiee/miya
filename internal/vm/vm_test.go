@@ -6,6 +6,30 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
+func TestReset(t *testing.T) {
+	tcase := newTestCase(t, "vm.Reset")
+
+	vm.Registers.PC = 0x512
+	vm.Registers.I = 0x200
+	vm.Registers.V[0x00] = 0x10
+	vm.Registers.V[0x01] = 0x11
+	vm.Keys[0x00] = 0x01
+	vm.Keys[0x01] = 0x01
+	vm.DelayTimer = 0x25
+	vm.SoundTimer = 0x25
+
+	vm.Reset()
+
+	tcase.assertEqualPC(0x200)
+	tcase.assertEqualI(0x000)
+	tcase.assertEqualVx(0x00, 0x00)
+	tcase.assertEqualVx(0x01, 0x00)
+	tcase.assertEqualKeys(0x00, 0x00)
+	tcase.assertEqualKeys(0x01, 0x00)
+	tcase.assertEqualDelayTimer(0x00)
+	tcase.assertEqualSoundTimer(0x00)
+}
+
 func TestClc_E0(t *testing.T) {
 	opcode := NewOpcode(0x00E0)
 	tcase := newTestCase(t, "CLC 0x00E0")
