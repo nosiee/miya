@@ -10,7 +10,7 @@ func init() {
 	stacktest = NewStack(CHIP8_STACK_SIZE)
 }
 
-func TestReset(t *testing.T) {
+func TestMemoryReset(t *testing.T) {
 	for i := 0; i < CHIP8_MEMORY_SIZE; i++ {
 		memtest.buffer[i] = 0xFF
 	}
@@ -24,7 +24,7 @@ func TestReset(t *testing.T) {
 	}
 }
 
-func TestWrite(t *testing.T) {
+func TestMemoryWrite(t *testing.T) {
 	addr := uint16(0x200)
 	data := byte(0xFF)
 
@@ -37,7 +37,7 @@ func TestWrite(t *testing.T) {
 	memtest.Reset()
 }
 
-func TestRead(t *testing.T) {
+func TestMemoryRead(t *testing.T) {
 	addr := uint16(0x200)
 	data := byte(0xFF)
 
@@ -50,7 +50,7 @@ func TestRead(t *testing.T) {
 	memtest.Reset()
 }
 
-func TestRead_oobs(t *testing.T) {
+func TestMemoryRead_oobs(t *testing.T) {
 	addr := uint16(CHIP8_MEMORY_SIZE + 0x10)
 
 	if memtest.Read(addr) != 0x00 {
@@ -60,7 +60,7 @@ func TestRead_oobs(t *testing.T) {
 	memtest.Reset()
 }
 
-func TestReadOpcode(t *testing.T) {
+func TestMemoryReadOpcode(t *testing.T) {
 	memtest.Write(0x200, 0xFF)
 	memtest.Write(0x201, 0xAB)
 
@@ -71,7 +71,7 @@ func TestReadOpcode(t *testing.T) {
 	}
 }
 
-func TestWriteArray(t *testing.T) {
+func TestMemoryWriteArray(t *testing.T) {
 	addr := uint16(0x200)
 	data := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
