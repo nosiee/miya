@@ -62,6 +62,7 @@ func NewOpcode(value uint16) Opcode {
 
 func (vm *VirtualMachine) Reset() {
 	vm.Registers.PC = 0x200
+	vm.Registers.I = 0x000
 	vm.Registers.V = make([]byte, 0x10)
 	vm.Keys = make([]byte, 0x10)
 	vm.DelayTimer = 0

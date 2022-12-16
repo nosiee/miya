@@ -15,11 +15,13 @@ func main() {
 	var delay uint64
 	var backgroundColor uint64
 	var pixelColor uint64
+	var debug bool
 
 	flag.StringVar(&fname, "fname", "", "Rom filename")
 	flag.Uint64Var(&delay, "delay", 10, "Delay in ms for virtualmachine and screen")
 	flag.Uint64Var(&backgroundColor, "background-color", 0x00000000, "Background color for screen")
 	flag.Uint64Var(&pixelColor, "pixel-color", 0xFFFFFF00, "Pixel color for screen")
+	flag.BoolVar(&debug, "debug", false, "Run in debug mode")
 	flag.Parse()
 
 	buffer, err := os.ReadFile(fname)
