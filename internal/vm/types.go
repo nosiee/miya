@@ -14,7 +14,7 @@ type VirtualMachine struct {
 	delay        uint64
 	memory       *memory.Memory
 	stack        *memory.Stack
-	screen       *screen.Screen
+	screen       screen.EmulatorWindow
 	instructions map[uint16]func(Opcode)
 	Keys         []byte
 	keypressed   chan byte

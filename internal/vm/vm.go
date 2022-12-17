@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"fmt"
 	"math/rand"
 	"miya/internal/memory"
 	"miya/internal/screen"
@@ -9,7 +10,7 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
-func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen *screen.Screen, delay uint64) *VirtualMachine {
+func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen screen.EmulatorWindow, delay uint64) *VirtualMachine {
 	vm := VirtualMachine{
 		Registers: Registers{
 			PC: 0x200,
@@ -74,6 +75,13 @@ func (vm *VirtualMachine) Reset() {
 	vm.memory.WriteArray(0x000, font)
 }
 
+func (vm *VirtualMachine) Debug() {
+	for {
+		// TODO: add stack
+		screen.Debug <- fmt.Sprintf("I: 0x%04x\nPC: 0x%04x\nVX: %v\nDelayTimer: %d\nSoundTimer: %d\nKeys: %v", vm.Registers.I, vm.Registers.PC, vm.Registers.V, vm.DelayTimer, vm.SoundTimer, vm.Keys)
+	}
+}
+
 func (vm *VirtualMachine) EvalLoop() {
 	go vm.keypad()
 
@@ -86,9 +94,6 @@ func (vm *VirtualMachine) EvalLoop() {
 		}
 
 		if vm.SoundTimer > 0 {
-			if vm.SoundTimer == 1 {
-				println("mmm....BEEP!")
-			}
 			vm.SoundTimer--
 		}
 
@@ -98,7 +103,7 @@ func (vm *VirtualMachine) EvalLoop() {
 
 func (vm *VirtualMachine) keypad() {
 	for {
-		keyevent := <-vm.screen.Keyevt
+		keyevent := <-screen.Keypressed
 
 		if _, ok := keymap[keyevent.Keycode]; ok {
 			if keyevent.Etype == sdl.KEYUP {
