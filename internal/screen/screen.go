@@ -28,11 +28,12 @@ type Keyevent struct {
 var Keypressed chan Keyevent
 var Debug chan string
 
-func ShowWindows(delay uint64, windows ...Window) {
+func init() {
 	Keypressed = make(chan Keyevent)
 	Debug = make(chan string)
+}
 
-	defer sdl.Quit()
+func ShowWindows(delay uint64, windows ...Window) {
 	defer func() {
 		for _, window := range windows {
 			window.Free()
@@ -52,6 +53,7 @@ func ShowWindows(delay uint64, windows ...Window) {
 					Etype:   evt.Type,
 				}
 			}
+
 		}
 
 		for _, window := range windows {

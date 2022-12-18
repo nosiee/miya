@@ -40,3 +40,7 @@ func (stack *Stack) Pop() uint16 {
 
 	return stack.buffer[stack.sp]
 }
+
+func (stack *Stack) Dump() []uint16 {
+	return stack.buffer
+}

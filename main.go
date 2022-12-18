@@ -41,7 +41,7 @@ func main() {
 	if debugMode {
 		dw, err := screen.NewDebugWindow("Debug", 320, 80)
 		if err != nil {
-			log.Fatalf("screen.DebugWindow(): %v\n", err)
+			log.Fatalf("screen.NewDebugWindow(): %v\n", err)
 		}
 
 		go screen.ShowWindows(delay, mw, dw)
