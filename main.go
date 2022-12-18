@@ -39,7 +39,7 @@ func main() {
 	vm := vm.NewVirtualMachine(mem, stack, mw, delay)
 
 	if debugMode {
-		dw, err := screen.NewDebugWindow("Debug", 320, 80)
+		dw, err := screen.NewDebugWindow("Debug", 320, 90)
 		if err != nil {
 			log.Fatalf("screen.NewDebugWindow(): %v\n", err)
 		}

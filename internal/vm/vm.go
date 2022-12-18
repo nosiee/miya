@@ -77,7 +77,7 @@ func (vm *VirtualMachine) Reset() {
 
 func (vm *VirtualMachine) Debug() {
 	for {
-		screen.Debug <- fmt.Sprintf("I: 0x%04x\nPC: 0x%04x\nVX: %v\nDelayTimer: %d\nSoundTimer: %d\nKeys: %v\nStack: %v", vm.Registers.I, vm.Registers.PC, vm.Registers.V, vm.DelayTimer, vm.SoundTimer, vm.Keys, vm.stack.Dump())
+		screen.Debug <- fmt.Sprintf("Opcode: 0x%04x\nI: 0x%04x\nPC: 0x%04x\nVX: %v\nDelayTimer: %d\nSoundTimer: %d\nKeys: %v\nStack: %v", vm.memory.ReadOpcode(vm.Registers.PC), vm.Registers.I, vm.Registers.PC, vm.Registers.V, vm.DelayTimer, vm.SoundTimer, vm.Keys, vm.stack.Dump())
 	}
 }
 
