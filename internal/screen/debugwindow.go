@@ -20,8 +20,7 @@ func NewDebugWindow(title string, width, height int32) (*DebugWindow, error) {
 		return nil, err
 	}
 
-	// TODO: font path should be an NewDebugWindow argument
-	font, err := ttf.OpenFont("chip8-roms/test.ttf", 10)
+	font, err := ttf.OpenFont("assets/font.ttf", 10)
 	if err != nil {
 		return nil, err
 	}
