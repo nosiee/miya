@@ -45,6 +45,10 @@ func ShowWindows(delay uint64, windows ...Window) {
 	for {
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch evt := event.(type) {
+			case *sdl.WindowEvent:
+				if evt.Event == sdl.WINDOWEVENT_CLOSE {
+					os.Exit(0)
+				}
 			case *sdl.QuitEvent:
 				os.Exit(0)
 			case *sdl.KeyboardEvent:
