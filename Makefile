@@ -2,7 +2,7 @@ build:
 	go build -o bin/miya
 
 run: build 
-	bin/miya
+	bin/miya --fname chip8-roms/Pong.ch8 --delay 1 --background-color 0x000000FF --pixel-color 0xFFFFFFFF
 
 test:
 	go test -v ./...

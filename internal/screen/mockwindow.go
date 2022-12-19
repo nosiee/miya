@@ -4,9 +4,6 @@ type MockWindow struct {
 	buffer [64][32]byte
 }
 
-func (mw MockWindow) Render() {}
-func (mw MockWindow) Free()   {}
-
 func (mw *MockWindow) SetPixel(x, y byte) {
 	if x < 64 && y < 32 {
 		mw.buffer[x][y] ^= 1

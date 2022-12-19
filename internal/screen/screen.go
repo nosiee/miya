@@ -12,47 +12,48 @@ type Window interface {
 	Free()
 }
 
-type EmulatorWindow interface {
-	Window
-
+type Chip8Screen interface {
 	SetPixel(x, y byte)
 	GetPixel(x, y byte) byte
 	Clear()
 }
 
-type Keyevent struct {
+type KeyEvent struct {
 	Keycode sdl.Keycode
 	Etype   uint32
 }
 
-var Keypressed chan Keyevent
+var KeyPressed chan KeyEvent
 var Debug chan string
 
 func init() {
-	Keypressed = make(chan Keyevent)
+	KeyPressed = make(chan KeyEvent)
 	Debug = make(chan string)
 }
 
 func ShowWindows(delay uint64, windows ...Window) {
+	var quit bool
+
 	defer func() {
 		for _, window := range windows {
 			window.Free()
 		}
 
 		sdl.Quit()
+		os.Exit(0)
 	}()
 
-	for {
+	for !quit {
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch evt := event.(type) {
 			case *sdl.WindowEvent:
 				if evt.Event == sdl.WINDOWEVENT_CLOSE {
-					os.Exit(0)
+					quit = true
 				}
 			case *sdl.QuitEvent:
-				os.Exit(0)
+				quit = true
 			case *sdl.KeyboardEvent:
-				Keypressed <- Keyevent{
+				KeyPressed <- KeyEvent{
 					Keycode: evt.Keysym.Sym,
 					Etype:   evt.Type,
 				}

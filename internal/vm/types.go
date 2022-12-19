@@ -8,26 +8,26 @@ import (
 )
 
 type VirtualMachine struct {
-	Registers    Registers
-	DelayTimer   byte
-	SoundTimer   byte
+	registers    registers
+	delayTimer   byte
+	soundTimer   byte
 	delay        uint64
 	memory       *memory.Memory
 	stack        *memory.Stack
-	screen       screen.EmulatorWindow
-	instructions map[uint16]func(Opcode)
-	Keys         []byte
+	screen       screen.Chip8Screen
+	instructions map[uint16]func(opcode)
+	keys         []byte
 	keypressed   chan byte
 	waitforkey   bool
 }
 
-type Registers struct {
+type registers struct {
 	I  uint16
 	PC uint16
 	V  []byte
 }
 
-type Opcode struct {
+type opcode struct {
 	value uint16
 	t     uint16
 	x     byte

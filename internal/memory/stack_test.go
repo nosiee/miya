@@ -14,6 +14,10 @@ func TestStackReset(t *testing.T) {
 			t.Errorf("got stack[0x%02x]: 0x%02x, want stack[0x%02x]: 0x%02x\n", i, stacktest.buffer[i], i, 0x00)
 		}
 	}
+
+	if stacktest.sp != 0 {
+		t.Errorf("got SP: %d, want SP: %d", stacktest.sp, 0)
+	}
 }
 
 func TestStackPush(t *testing.T) {
@@ -53,8 +57,6 @@ func TestStackPop(t *testing.T) {
 	if b != 0xFF {
 		t.Errorf("got stack.pop(): 0x%02x, want stack.pop(): 0x%02x\n", b, 0xFF)
 	}
-
-	stacktest.Reset()
 }
 
 func TestStackPop_zsp(t *testing.T) {

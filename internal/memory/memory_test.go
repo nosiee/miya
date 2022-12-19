@@ -56,8 +56,6 @@ func TestMemoryRead_oobs(t *testing.T) {
 	if memtest.Read(addr) != 0x00 {
 		t.Errorf("got memory[0x%04x]: 0x%04x, want memory[0x%04x]: 0x%04x\n", addr, memtest.Read(addr), addr, 0x00)
 	}
-
-	memtest.Reset()
 }
 
 func TestMemoryReadOpcode(t *testing.T) {
@@ -69,6 +67,8 @@ func TestMemoryReadOpcode(t *testing.T) {
 	if opcode != 0xFFAB {
 		t.Errorf("got opcode: 0x%04x, want opcode: 0x%04x\n", opcode, 0xFFAB)
 	}
+
+	memtest.Reset()
 }
 
 func TestMemoryWriteArray(t *testing.T) {

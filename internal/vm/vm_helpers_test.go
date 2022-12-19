@@ -27,8 +27,8 @@ func newTestCase(test *testing.T, name string) testCase {
 }
 
 func (tcase testCase) assertEqualPC(value uint16) {
-	if vm.Registers.PC != value {
-		tcase.test.Errorf("[%s] got PC: 0x%04x, want 0x%04x\n", tcase.name, vm.Registers.PC, value)
+	if vm.registers.PC != value {
+		tcase.test.Errorf("[%s] got PC: 0x%04x, want 0x%04x\n", tcase.name, vm.registers.PC, value)
 	}
 }
 
@@ -51,38 +51,38 @@ func (tcase testCase) assertEqualStackHead(value uint16) {
 }
 
 func (tcase testCase) assertEqualVx(x byte, value byte) {
-	if vm.Registers.V[x] != value {
-		tcase.test.Errorf("[%s] got V[0x%02x] = 0x%02x, want V[0x%02x] = 0x%02x\n", tcase.name, x, vm.Registers.V[x], x, value)
+	if vm.registers.V[x] != value {
+		tcase.test.Errorf("[%s] got V[0x%02x] = 0x%02x, want V[0x%02x] = 0x%02x\n", tcase.name, x, vm.registers.V[x], x, value)
 	}
 }
 
 func (tcase testCase) assertNotEqualVx(x byte, value byte) {
-	if vm.Registers.V[x] == value {
-		tcase.test.Errorf("[%s] got V[0x%02x] = 0x%02x, want V[0x%02x] = 0x%02x\n", tcase.name, x, vm.Registers.V[x], x, value)
+	if vm.registers.V[x] == value {
+		tcase.test.Errorf("[%s] got V[0x%02x] = 0x%02x, want V[0x%02x] = 0x%02x\n", tcase.name, x, vm.registers.V[x], x, value)
 	}
 }
 
 func (tcase testCase) assertEqualI(value uint16) {
-	if vm.Registers.I != value {
-		tcase.test.Errorf("[%s] got I: 0x%04x, want I: 0x%04x\n", tcase.name, vm.Registers.I, value)
+	if vm.registers.I != value {
+		tcase.test.Errorf("[%s] got I: 0x%04x, want I: 0x%04x\n", tcase.name, vm.registers.I, value)
 	}
 }
 
 func (tcase testCase) assertEqualKeys(x byte, value byte) {
-	if vm.Keys[x] != value {
-		tcase.test.Errorf("[%s] got Keys[0x%02x] = 0x%02x, want Keys[0x%02x] = 0x%02x\n", tcase.name, x, vm.Keys[x], x, value)
+	if vm.keys[x] != value {
+		tcase.test.Errorf("[%s] got Keys[0x%02x] = 0x%02x, want Keys[0x%02x] = 0x%02x\n", tcase.name, x, vm.keys[x], x, value)
 	}
 }
 
 func (tcase testCase) assertEqualDelayTimer(value byte) {
-	if vm.DelayTimer != value {
-		tcase.test.Errorf("[%s] got DelayTimer: %d, want DelayTimer: %d\n", tcase.name, vm.DelayTimer, value)
+	if vm.delayTimer != value {
+		tcase.test.Errorf("[%s] got DelayTimer: %d, want DelayTimer: %d\n", tcase.name, vm.delayTimer, value)
 	}
 }
 
 func (tcase testCase) assertEqualSoundTimer(value byte) {
-	if vm.SoundTimer != value {
-		tcase.test.Errorf("[%s] got SoundTimer: %d, want SoundTimer: %d\n", tcase.name, vm.SoundTimer, value)
+	if vm.soundTimer != value {
+		tcase.test.Errorf("[%s] got SoundTimer: %d, want SoundTimer: %d\n", tcase.name, vm.soundTimer, value)
 	}
 }
 
