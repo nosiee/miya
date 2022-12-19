@@ -7,7 +7,6 @@ var stacktest *Stack
 
 func init() {
 	memtest = NewMemory(CHIP8_MEMORY_SIZE)
-	stacktest = NewStack(CHIP8_STACK_SIZE)
 }
 
 func TestMemoryReset(t *testing.T) {

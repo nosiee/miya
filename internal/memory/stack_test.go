@@ -2,6 +2,10 @@ package memory
 
 import "testing"
 
+func init() {
+	stacktest = NewStack(CHIP8_STACK_SIZE)
+}
+
 func TestStackReset(t *testing.T) {
 	for i := 0; i < CHIP8_STACK_SIZE; i++ {
 		stacktest.buffer[i] = 0xFF

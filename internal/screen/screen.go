@@ -12,12 +12,6 @@ type Window interface {
 	Free()
 }
 
-type Chip8Screen interface {
-	SetPixel(x, y byte)
-	GetPixel(x, y byte) byte
-	Clear()
-}
-
 type KeyEvent struct {
 	Keycode sdl.Keycode
 	Etype   uint32
