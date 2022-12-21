@@ -18,7 +18,7 @@ type MainWindow struct {
 	buffer          [64][32]byte
 }
 
-func NewMainWindow(title string, width, height int32, backgroundColor, pixelColor uint32) (*MainWindow, error) {
+func NewMainWindow(title string, width, height int32, backgroundColor, pixelColor uint64) (*MainWindow, error) {
 	var mw MainWindow
 
 	if err := sdl.Init(sdl.INIT_VIDEO); err != nil {
@@ -37,12 +37,15 @@ func NewMainWindow(title string, width, height int32, backgroundColor, pixelColo
 
 	mw.window = window
 	mw.renderer = renderer
-	mw.backgroundColor = sdl.Color{R: uint8((backgroundColor & 0xFF000000) >> 24),
+
+	mw.backgroundColor = sdl.Color{
+		R: uint8((backgroundColor & 0xFF000000) >> 24),
 		G: uint8((backgroundColor & 0x00FF0000) >> 16),
 		B: uint8((backgroundColor & 0x0000FF00) >> 8),
 		A: uint8(backgroundColor & 0x000000F)}
 
-	mw.pixelColor = sdl.Color{R: uint8((pixelColor & 0xFF000000) >> 24),
+	mw.pixelColor = sdl.Color{
+		R: uint8((pixelColor & 0xFF000000) >> 24),
 		G: uint8((pixelColor & 0x00FF0000) >> 16),
 		B: uint8((pixelColor & 0x0000FF00) >> 8),
 		A: uint8(pixelColor & 0x000000F)}
