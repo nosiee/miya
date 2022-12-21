@@ -1,6 +1,8 @@
 package screen
 
-import "github.com/veandco/go-sdl2/sdl"
+import (
+	"github.com/veandco/go-sdl2/sdl"
+)
 
 type Chip8Screen interface {
 	SetPixel(x, y byte)

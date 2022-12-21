@@ -18,7 +18,7 @@ func main() {
 	var debugMode bool
 
 	flag.StringVar(&fname, "fname", "", "Rom filename")
-	flag.Uint64Var(&delay, "delay", 10, "Delay in ms for virtualmachine and screen")
+	flag.Uint64Var(&delay, "delay", 1, "Delay in ms for virtualmachine and screen")
 	flag.Uint64Var(&backgroundColor, "background-color", 0x00000000, "Background color for screen")
 	flag.Uint64Var(&pixelColor, "pixel-color", 0xFFFFFF00, "Pixel color for screen")
 	flag.BoolVar(&debugMode, "debug-mode", false, "Run in debug mode")
