@@ -29,7 +29,7 @@ func main() {
 		log.Fatalf("os.ReadFile(): %v\n", err)
 	}
 
-	mw, err := screen.NewMainWindow(fmt.Sprintf("CHIP8 - %s | %dms", fname, delay), 640, 320, backgroundColor, pixelColor)
+	mw, err := screen.NewMainWindow(fmt.Sprintf("CHIP8 - %s | %dms", fname, delay), 640, 320, uint32(backgroundColor), uint32(pixelColor))
 	if err != nil {
 		log.Fatalf("screen.NewMainWindow(): %v\n", err)
 	}

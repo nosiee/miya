@@ -72,7 +72,7 @@ func TestMemoryReadOpcode(t *testing.T) {
 
 func TestMemoryWriteArray(t *testing.T) {
 	addr := uint16(0x200)
-	data := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	data := []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09}
 
 	memtest.WriteArray(addr, data)
 
