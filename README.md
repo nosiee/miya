@@ -11,7 +11,7 @@ sudo pacman -S sdl2 sdl2_ttf
 ```
 ### Build
 ```
-make
+make build
 ```
 Keep in mind that this may take some time because of Cgo
 
@@ -39,7 +39,7 @@ bin/miya --fname Pong.ch8 --background-color 0x000000FF --pixel-color 0xFFFFFFFF
 Colors for the background and the pixels on the *screen*
 
 ```
-bin/miya --fname Pong.ch8  --delay 10 --debug-mode
+bin/miya --fname Pong.ch8 --delay 10 --debug-mode
 ```
 Run in debug mode. Additional window with registers, stack, etc.
 
