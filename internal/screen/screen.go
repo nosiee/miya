@@ -49,8 +49,9 @@ func ShowWindows(delay uint64, windows ...Window) {
 			case *sdl.QuitEvent:
 				quit = true
 			case *sdl.MouseButtonEvent:
+				// TODO: find a better way to check coords
 				// NOTE: We assume that if WindowID == 2, we are in debug mode
-				if evt.WindowID == 2 && (evt.X >= 130 && evt.X <= 190) && (evt.Y >= 90 && evt.Y <= 110) {
+				if evt.WindowID == 2 && (evt.X >= 160 && evt.X <= 220) && (evt.Y >= 90 && evt.Y <= 110) {
 					Next <- struct{}{}
 				}
 			case *sdl.KeyboardEvent:

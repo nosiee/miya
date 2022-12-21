@@ -42,7 +42,7 @@ func main() {
 	go vm.EvalLoop()
 
 	if debugMode {
-		dw, err := screen.NewDebugWindow("Debug", 320, 120)
+		dw, err := screen.NewDebugWindow("Debug", 380, 120)
 		if err != nil {
 			log.Fatalf("screen.NewDebugWindow(): %v\n", err)
 		}

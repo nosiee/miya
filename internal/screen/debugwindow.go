@@ -68,7 +68,7 @@ func (dw *DebugWindow) drawNextButton() {
 	defer dw.renderer.SetDrawColor(0, 0, 0, 0)
 
 	dw.renderer.FillRect(&sdl.Rect{
-		X: 130,
+		X: 160,
 		Y: 90,
 		W: 60,
 		H: 20,
@@ -77,7 +77,7 @@ func (dw *DebugWindow) drawNextButton() {
 	surface, _ := dw.font.RenderUTF8Solid("Next", sdl.Color{R: 0, G: 0, B: 0, A: 255})
 	texture, _ := dw.renderer.CreateTextureFromSurface(surface)
 	rect := sdl.Rect{
-		X: 145,
+		X: 175,
 		Y: 93,
 		W: surface.W,
 		H: surface.H,
