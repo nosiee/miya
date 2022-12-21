@@ -7,6 +7,11 @@ import (
 	"github.com/veandco/go-sdl2/ttf"
 )
 
+const DEBUG_BUTTON_X = 160
+const DEBUG_BUTTON_Y = 90
+const DEBUG_BUTTON_W = 60
+const DEBUG_BUTTON_H = 20
+
 type DebugWindow struct {
 	window   *sdl.Window
 	renderer *sdl.Renderer
@@ -68,17 +73,17 @@ func (dw *DebugWindow) drawNextButton() {
 	defer dw.renderer.SetDrawColor(0, 0, 0, 0)
 
 	dw.renderer.FillRect(&sdl.Rect{
-		X: 160,
-		Y: 90,
-		W: 60,
-		H: 20,
+		X: DEBUG_BUTTON_X,
+		Y: DEBUG_BUTTON_Y,
+		W: DEBUG_BUTTON_W,
+		H: DEBUG_BUTTON_H,
 	})
 
 	surface, _ := dw.font.RenderUTF8Solid("Next", sdl.Color{R: 0, G: 0, B: 0, A: 255})
 	texture, _ := dw.renderer.CreateTextureFromSurface(surface)
 	rect := sdl.Rect{
-		X: 175,
-		Y: 93,
+		X: DEBUG_BUTTON_X + 15,
+		Y: DEBUG_BUTTON_Y + 3,
 		W: surface.W,
 		H: surface.H,
 	}

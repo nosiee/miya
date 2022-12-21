@@ -62,6 +62,17 @@ func newOpcode(value uint16) opcode {
 	}
 }
 
+func (op opcode) String() string {
+	return fmt.Sprintf("0x%04x [t: 0x%04x, x: 0x%02x, y: 0x%02x, n: 0x%02x, nn: 0x%02x, nnn: 0x%03x]",
+		op.value,
+		op.t,
+		op.x,
+		op.y,
+		op.n,
+		op.nn,
+		op.nnn)
+}
+
 func (vm *VirtualMachine) Reset() {
 	vm.registers.PC = 0x200
 	vm.registers.I = 0x000
@@ -78,17 +89,15 @@ func (vm *VirtualMachine) Reset() {
 
 func (vm *VirtualMachine) Debug() {
 	for {
-		opcode := newOpcode(vm.memory.ReadOpcode(vm.registers.PC))
-		opcodeInfo := fmt.Sprintf("0x%04x [t: 0x%04x, x: 0x%02x, y: 0x%02x, n: 0x%02x, nn: 0x%02x, nnn: 0x%04x]",
-			opcode.value,
-			opcode.t,
-			opcode.x,
-			opcode.y,
-			opcode.n,
-			opcode.nn,
-			opcode.nnn)
-
-		screen.Debug <- fmt.Sprintf("Opcode: %s\nI: 0x%04x\nPC: 0x%04x\nVX: %v\nDelayTimer: %d\nsoundTimer: %d\nKeys: %v\nStack: %v", opcodeInfo, vm.registers.I, vm.registers.PC, vm.registers.V, vm.delayTimer, vm.soundTimer, vm.keys, vm.stack.Dump())
+		screen.Debug <- fmt.Sprintf("Opcode: %s\nI: 0x%04x\nPC: 0x%04x\nVX: %v\nDelayTimer: %d\nsoundTimer: %d\nKeys: %v\nStack: %v",
+			newOpcode(vm.registers.PC),
+			vm.registers.I,
+			vm.registers.PC,
+			vm.registers.V,
+			vm.delayTimer,
+			vm.soundTimer,
+			vm.keys,
+			vm.stack.Dump())
 	}
 }
 

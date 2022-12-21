@@ -511,7 +511,7 @@ func TestLdf_0A(t *testing.T) {
 	tcase := newTestCase(t, "LDF 0x0A")
 
 	go vm.ldf(opcode)
-	vm.keypressed <- sdl.K_3
+	vm.keyPressed <- sdl.K_3
 
 	tcase.assertEqualVx(opcode.x, sdl.K_3)
 	tcase.assertEqualPC(0x202)
