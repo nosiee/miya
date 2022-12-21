@@ -17,8 +17,9 @@ type VirtualMachine struct {
 	screen       screen.Chip8Screen
 	instructions map[uint16]func(opcode)
 	keys         []byte
-	keypressed   chan byte
-	waitforkey   bool
+	keyPressed   chan byte
+	waitForKey   bool
+	debugMode    bool
 }
 
 type registers struct {

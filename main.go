@@ -36,13 +36,13 @@ func main() {
 
 	mem := memory.NewMemory(memory.CHIP8_MEMORY_SIZE)
 	stack := memory.NewStack(memory.CHIP8_STACK_SIZE)
-	vm := vm.NewVirtualMachine(mem, stack, mw, delay)
+	vm := vm.NewVirtualMachine(mem, stack, mw, delay, debugMode)
 
 	mem.WriteArray(0x200, buffer)
 	go vm.EvalLoop()
 
 	if debugMode {
-		dw, err := screen.NewDebugWindow("Debug", 320, 90)
+		dw, err := screen.NewDebugWindow("Debug", 320, 120)
 		if err != nil {
 			log.Fatalf("screen.NewDebugWindow(): %v\n", err)
 		}

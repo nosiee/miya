@@ -10,7 +10,7 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
-func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen screen.Chip8Screen, delay uint64) *VirtualMachine {
+func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen screen.Chip8Screen, delay uint64, debugMode bool) *VirtualMachine {
 	vm := VirtualMachine{
 		registers: registers{
 			PC: 0x200,
@@ -24,7 +24,8 @@ func NewVirtualMachine(memory *memory.Memory, stack *memory.Stack, screen screen
 		screen:       screen,
 		instructions: make(map[uint16]func(opcode)),
 		keys:         make([]byte, 0x10),
-		keypressed:   make(chan byte),
+		keyPressed:   make(chan byte),
+		debugMode:    debugMode,
 	}
 
 	vm.memory.WriteArray(0x000, font)
@@ -77,7 +78,6 @@ func (vm *VirtualMachine) Reset() {
 
 func (vm *VirtualMachine) Debug() {
 	for {
-		// FIXME: we cant be sure that vm.registers.PC points to the current instruction since vm.Debug() is running asynchronously
 		screen.Debug <- fmt.Sprintf("Opcode: 0x%04x\nI: 0x%04x\nPC: 0x%04x\nVX: %v\nDelayTimer: %d\nsoundTimer: %d\nKeys: %v\nStack: %v", vm.memory.ReadOpcode(vm.registers.PC), vm.registers.I, vm.registers.PC, vm.registers.V, vm.delayTimer, vm.soundTimer, vm.keys, vm.stack.Dump())
 	}
 }
@@ -86,6 +86,10 @@ func (vm *VirtualMachine) EvalLoop() {
 	go vm.keypad()
 
 	for {
+		if vm.debugMode {
+			<-screen.Next
+		}
+
 		opcode := newOpcode(vm.memory.ReadOpcode(vm.registers.PC))
 		vm.instructions[opcode.t](opcode)
 
@@ -111,8 +115,8 @@ func (vm *VirtualMachine) keypad() {
 			} else {
 				vm.keys[keymap[keyevent.Keycode]] = 1
 
-				if vm.waitforkey {
-					vm.keypressed <- keymap[keyevent.Keycode]
+				if vm.waitForKey {
+					vm.keyPressed <- keymap[keyevent.Keycode]
 				}
 			}
 		}
@@ -293,9 +297,9 @@ func (vm *VirtualMachine) ldf(opcode opcode) {
 	case 0x07:
 		vm.registers.V[opcode.x] = vm.delayTimer
 	case 0x0A:
-		vm.waitforkey = true
-		vm.registers.V[opcode.x] = <-vm.keypressed
-		vm.waitforkey = false
+		vm.waitForKey = true
+		vm.registers.V[opcode.x] = <-vm.keyPressed
+		vm.waitForKey = false
 	case 0x15:
 		vm.delayTimer = vm.registers.V[opcode.x]
 	case 0x18:

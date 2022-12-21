@@ -19,10 +19,12 @@ type KeyEvent struct {
 
 var KeyPressed chan KeyEvent
 var Debug chan string
+var Next chan struct{}
 
 func init() {
 	KeyPressed = make(chan KeyEvent)
 	Debug = make(chan string)
+	Next = make(chan struct{})
 }
 
 func ShowWindows(delay uint64, windows ...Window) {
@@ -46,6 +48,11 @@ func ShowWindows(delay uint64, windows ...Window) {
 				}
 			case *sdl.QuitEvent:
 				quit = true
+			case *sdl.MouseButtonEvent:
+				// NOTE: We assume that if WindowID == 2, we are in debug mode
+				if evt.WindowID == 2 && (evt.X >= 130 && evt.X <= 190) && (evt.Y >= 90 && evt.Y <= 110) {
+					Next <- struct{}{}
+				}
 			case *sdl.KeyboardEvent:
 				KeyPressed <- KeyEvent{
 					Keycode: evt.Keysym.Sym,

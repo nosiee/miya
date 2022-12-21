@@ -58,8 +58,34 @@ func (dw *DebugWindow) Render() {
 		texture.Destroy()
 	}
 
+	dw.drawNextButton()
 	dw.renderer.Present()
 	dw.renderer.Clear()
+}
+
+func (dw *DebugWindow) drawNextButton() {
+	dw.renderer.SetDrawColor(255, 255, 255, 255)
+	defer dw.renderer.SetDrawColor(0, 0, 0, 0)
+
+	dw.renderer.FillRect(&sdl.Rect{
+		X: 130,
+		Y: 90,
+		W: 60,
+		H: 20,
+	})
+
+	surface, _ := dw.font.RenderUTF8Solid("Next", sdl.Color{R: 0, G: 0, B: 0, A: 255})
+	texture, _ := dw.renderer.CreateTextureFromSurface(surface)
+	rect := sdl.Rect{
+		X: 145,
+		Y: 93,
+		W: surface.W,
+		H: surface.H,
+	}
+
+	dw.renderer.Copy(texture, nil, &rect)
+	surface.Free()
+	texture.Destroy()
 }
 
 func (dw *DebugWindow) Free() {
