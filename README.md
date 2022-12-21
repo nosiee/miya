@@ -13,7 +13,7 @@ sudo pacman -S sdl2 sdl2_ttf
 ```
 make
 ```
-Keep in mind that this may take some time because of the cgo 
+Keep in mind that this may take some time because of Cgo
 
 ### Usage
 ```
