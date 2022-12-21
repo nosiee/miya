@@ -1,5 +1,5 @@
 ### Dependencies
-SDL2 for golang
+SDL2 and SDL2_ttf for golang
 ```
 go get -u -v github.com/veandco/go-sdl2/sdl
 go get -u -v github.com/veandco/go-sdl2/ttf
