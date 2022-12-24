@@ -42,13 +42,13 @@ func NewMainWindow(title string, width, height int32, backgroundColor, pixelColo
 		R: uint8((backgroundColor & 0xFF000000) >> 24),
 		G: uint8((backgroundColor & 0x00FF0000) >> 16),
 		B: uint8((backgroundColor & 0x0000FF00) >> 8),
-		A: uint8(backgroundColor & 0x000000F)}
+		A: uint8(backgroundColor & 0x000000FF)}
 
 	mw.pixelColor = sdl.Color{
 		R: uint8((pixelColor & 0xFF000000) >> 24),
 		G: uint8((pixelColor & 0x00FF0000) >> 16),
 		B: uint8((pixelColor & 0x0000FF00) >> 8),
-		A: uint8(pixelColor & 0x000000F)}
+		A: uint8(pixelColor & 0x000000FF)}
 
 	return &mw, nil
 }
