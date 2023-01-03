@@ -90,7 +90,7 @@ func (vm *VirtualMachine) Reset() {
 func (vm *VirtualMachine) Debug() {
 	for {
 		screen.Debug <- fmt.Sprintf("Opcode: %s\nI: 0x%04x\nPC: 0x%04x\nVX: %v\nDelayTimer: %d\nsoundTimer: %d\nKeys: %v\nStack: %v",
-			newOpcode(vm.registers.PC),
+			newOpcode(vm.memory.ReadOpcode(vm.registers.PC)),
 			vm.registers.I,
 			vm.registers.PC,
 			vm.registers.V,
